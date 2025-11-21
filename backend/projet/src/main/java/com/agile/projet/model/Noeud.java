@@ -11,6 +11,12 @@ public class Noeud {
         this.latitude = latitude;
         this.longitude = longitude;
     }
+    
+    public Noeud(Noeud other) {
+        this.id = other.id;
+        this.latitude = other.latitude;
+        this.longitude = other.longitude;
+    }
 
     public long getId() {
         return id;
@@ -23,6 +29,8 @@ public class Noeud {
     public double getLongitude() {
         return longitude;
     }
+
+
 
     // Optionnel : toString()
 }

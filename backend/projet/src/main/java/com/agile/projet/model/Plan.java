@@ -6,6 +6,7 @@ public class Plan {
 
     private Map<Long, Noeud> noeuds = new HashMap<>();
     private List<Troncon> troncons = new ArrayList<>();
+    private List<Troncon> vraiTroncons = new ArrayList<>();
 
     public void addNoeud(Noeud n) {
         noeuds.put(n.getId(), n);
@@ -29,8 +30,8 @@ public class Plan {
 
     public void joinNoeudTroncons(){
         for(Troncon t : troncons){
-            Noeud noeudOrigine;
-            Noeud noeudDestination;
+            Noeud noeudOrigine = null;
+            Noeud noeudDestination = null;
             int found = 0;
             for(Noeud n :noeuds.values()){
                 if(t.getDestination1() == n.getId()){
@@ -43,7 +44,10 @@ public class Plan {
                 }
                 if(found == 2){found = 0;break;}
             }
-            Troncon troncon = new Troncon(noeudOrigine, noeudDestination,)
+
+
+            Troncon troncon = new Troncon(noeudOrigine, noeudDestination, t.getLongueur(), t.getNomRue());
+            vraiTroncons.add(troncon);
         }
 
     }
