@@ -4,7 +4,7 @@
   font-weight: 400;
 
   color-scheme: light;
-  color: #000000;
+  color: #1f2937;
   background-color: #f0f0f0;
 
   font-synthesis: none;
@@ -17,18 +17,18 @@ body {
   margin: 0;
   padding: 0;
   min-height: 100vh;
-  background-color: #e0e7ff; /* Light indigo background */
+  background-color: #f8fafc; /* Slate 50 */
 }
 
 button {
   font-family: 'JetBrains Mono', monospace;
   font-weight: 700;
-  border: 3px solid #000000;
+  border: 3px solid #1f2937;
   border-radius: 0;
   padding: 10px 20px;
   background-color: #ffffff;
-  color: #000000;
-  box-shadow: 4px 4px 0px 0px #000000;
+  color: #1f2937;
+  box-shadow: 4px 4px 0px 0px #1f2937;
   cursor: pointer;
   transition: all 0.1s ease;
   text-transform: uppercase;
@@ -37,22 +37,23 @@ button {
 
 button:hover {
   transform: translate(-2px, -2px);
-  box-shadow: 6px 6px 0px 0px #000000;
+  box-shadow: 6px 6px 0px 0px #1f2937;
 }
 
 button:active {
   transform: translate(2px, 2px);
-  box-shadow: 2px 2px 0px 0px #000000;
+  box-shadow: 2px 2px 0px 0px #1f2937;
 }
 
 input, select {
   font-family: 'JetBrains Mono', monospace;
-  border: 3px solid #000000;
+  border: 3px solid #1f2937;
   padding: 8px;
   border-radius: 0;
   background: #ffffff;
-  box-shadow: 4px 4px 0px 0px #000000;
+  box-shadow: 4px 4px 0px 0px #1f2937;
   outline: none;
+  color: #1f2937;
 }
 
 input:focus, select:focus {
