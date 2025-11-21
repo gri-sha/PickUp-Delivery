@@ -29,10 +29,10 @@ const createLucideIcon = (icon: React.ReactNode, color: string) => {
   });
 };
 
-const warehouseIcon = createLucideIcon(<Warehouse size={32} fill="currentColor" />, '#ef4444'); // Red
-const pickupIcon = createLucideIcon(<Package size={32} fill="currentColor" />, '#3b82f6'); // Blue
-const deliveryIcon = createLucideIcon(<MapPin size={32} fill="currentColor" />, '#22c55e'); // Green
-const userIcon = createLucideIcon(<User size={32} fill="currentColor" />, '#eab308'); // Yellow
+const warehouseIcon = createLucideIcon(<Warehouse size={32} fill="currentColor" />, '#fca5a5'); // Pastel Red
+const pickupIcon = createLucideIcon(<Package size={32} fill="currentColor" />, '#93c5fd'); // Pastel Blue
+const deliveryIcon = createLucideIcon(<MapPin size={32} fill="currentColor" />, '#86efac'); // Pastel Green
+const userIcon = createLucideIcon(<User size={32} fill="currentColor" />, '#fde047'); // Pastel Yellow
 
 interface MapComponentProps {
   mapData: MapData | null;
@@ -96,8 +96,8 @@ const MapComponent: React.FC<MapComponentProps> = ({
                     [origin.latitude, origin.longitude],
                     [dest.latitude, dest.longitude]
                   ]}
-                  color="black"
-                  weight={3}
+                  color="#d1d5db" // light gray
+                  weight={4}
                   opacity={0.8}
                 />
               );

@@ -42,4 +42,5 @@ export interface CustomStop {
   latitude: number;
   longitude: number;
   type: StopType;
+  duration?: number;
 }

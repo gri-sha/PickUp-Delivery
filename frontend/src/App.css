@@ -9,16 +9,16 @@
   display: flex;
   flex-direction: column;
   height: 100vh;
-  padding: 20px;
+  padding: 20px 20px 50px 20px; /* Added bottom padding */
   box-sizing: border-box;
 }
 
 header {
-  background-color: #ff6b6b; /* Neobrutalism Red */
+  background-color: #fecaca; /* Pastel Red */
   padding: 20px;
-  color: black;
-  border: 3px solid black;
-  box-shadow: 6px 6px 0px 0px #000000;
+  color: #1f2937;
+  border: 3px solid #1f2937;
+  box-shadow: 6px 6px 0px 0px #1f2937;
   margin-bottom: 20px;
   text-transform: uppercase;
   letter-spacing: -1px;
@@ -40,8 +40,8 @@ main {
 .map-wrapper {
   flex: 1;
   position: relative;
-  border: 3px solid #000000;
-  box-shadow: 8px 8px 0px 0px #000000;
+  border: 3px solid #1f2937;
+  box-shadow: 8px 8px 0px 0px #1f2937;
   min-height: 400px;
   background: white;
 }
@@ -51,44 +51,110 @@ main {
   top: 20px;
   left: 50%;
   transform: translateX(-50%);
-  background: #facc15; /* Yellow */
+  background: #fef08a; /* Pastel Yellow */
   padding: 15px 25px;
-  border: 3px solid black;
-  box-shadow: 4px 4px 0px 0px #000000;
+  border: 3px solid #1f2937;
+  box-shadow: 4px 4px 0px 0px #1f2937;
   z-index: 1000;
   font-weight: bold;
   display: flex;
   align-items: center;
   gap: 10px;
+  color: #1f2937;
 }
 
 .mode-indicator button {
   padding: 5px 10px;
   font-size: 0.8rem;
   background: white;
-  box-shadow: 2px 2px 0px 0px #000000;
+  box-shadow: 2px 2px 0px 0px #1f2937;
 }
 
 .control-panel {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.control-section {
   background: #ffffff;
-  border: 3px solid black;
-  box-shadow: 8px 8px 0px 0px #000000;
+  border: 3px solid #1f2937;
+  box-shadow: 8px 8px 0px 0px #1f2937;
   padding: 20px;
   text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.control-section h3 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  font-size: 1.1rem;
+  border-bottom: 2px solid #e5e7eb;
+  padding-bottom: 5px;
 }
 
 .info-panel {
-  text-align: left;
+  background: #e0f2fe; /* Pastel Blue */
+  border: 3px solid #1f2937;
+  box-shadow: 8px 8px 0px 0px #1f2937;
   padding: 20px;
-  background: #a5f3fc; /* Cyan */
-  border: 3px solid black;
-  box-shadow: 8px 8px 0px 0px #000000;
+  text-align: left;
+  /* Removed max-height and overflow to allow expansion */
+}
+
+.info-panel h3 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  text-transform: uppercase;
+  font-weight: 800;
+  border-bottom: 3px solid #1f2937;
+  padding-bottom: 10px;
+  display: inline-block;
+}
+
+.delivery-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.delivery-group h4 {
+  margin: 0 0 5px 0;
+  font-size: 1rem;
+  color: #4b5563;
+  text-transform: uppercase;
+  font-weight: bold;
+}
+
+.delivery-group ul {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+.delivery-group li {
+  background: white;
+  border: 2px solid #1f2937;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  box-shadow: 3px 3px 0px 0px #1f2937;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+  padding: 20px;
+  background: #e0f2fe; /* Pastel Blue */
+  border: 3px solid #1f2937;
+  box-shadow: 8px 8px 0px 0px #1f2937;
+  color: #1f2937;
 }
 
 .info-panel h3 {
   margin-top: 0;
   text-transform: uppercase;
-  border-bottom: 3px solid black;
+  border-bottom: 3px solid #1f2937;
   padding-bottom: 10px;
   display: inline-block;
 }

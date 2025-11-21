@@ -1,15 +1,31 @@
-import React from 'react';
-import type { StopType } from '../types';
+import React, { useState } from 'react';
+
+const MAP_FILES = ['grandPlan.xml', 'moyenPlan.xml', 'petitPlan.xml'];
+const REQUEST_FILES = [
+  'demandeGrand7.xml', 'demandeGrand9.xml', 
+  'demandeMoyen3.xml', 'demandeMoyen5.xml', 
+  'demandePetit1.xml', 'demandePetit2.xml', 
+  'myDeliverRequest.xml', 'requestsSmall1.xml', 
+  'Untitled.xml'
+];
 
 interface ControlPanelProps {
-  onLoadMap: (file: File) => void;
-  onLoadDelivery: (file: File) => void;
+  onLoadMap: (xmlText: string) => void;
+  onLoadDelivery: (xmlText: string) => void;
   courierCount: number;
   setCourierCount: (count: number) => void;
-  onAddStop: (type: StopType) => void;
+  onStartAddDelivery: () => void;
+  onConfirmAdd: () => void;
   onLocateUser: () => void;
   onSaveRequest: () => void;
   onSendRequest: () => void;
+  deliveryCreationStep: 'idle' | 'select-pickup' | 'select-delivery' | 'review';
+  pickupDuration: number | string;
+  setPickupDuration: (duration: number | string) => void;
+  deliveryDuration: number | string;
+  setDeliveryDuration: (duration: number | string) => void;
+  onSetWarehouse: () => void;
+  isSettingWarehouse: boolean;
 }
 
 export default function ControlPanel({
@@ -17,67 +33,186 @@ export default function ControlPanel({
   onLoadDelivery,
   courierCount,
   setCourierCount,
-  onAddStop,
+  onStartAddDelivery,
+  onConfirmAdd,
   onLocateUser,
   onSaveRequest,
-  onSendRequest
+  onSendRequest,
+  deliveryCreationStep,
+  pickupDuration,
+  setPickupDuration,
+  deliveryDuration,
+  setDeliveryDuration,
+  onSetWarehouse,
+  isSettingWarehouse
 }: ControlPanelProps) {
-  const [selectedStopType, setSelectedStopType] = React.useState<StopType>('pickup');
   
-  const handleMapUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      onLoadMap(e.target.files[0]);
+  const [selectedMap, setSelectedMap] = useState<string>('');
+  const [selectedRequest, setSelectedRequest] = useState<string>('');
+
+  const handleMapSelect = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const filename = e.target.value;
+    setSelectedMap(filename);
+    if (filename) {
+      try {
+        const response = await fetch(`/xml/plans/${filename}`);
+        const text = await response.text();
+        onLoadMap(text);
+      } catch (error) {
+        console.error("Error loading map:", error);
+        alert("Failed to load map file.");
+      }
     }
   };
 
-  const handleDeliveryUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      onLoadDelivery(e.target.files[0]);
+  const handleRequestSelect = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const filename = e.target.value;
+    setSelectedRequest(filename);
+    if (filename) {
+      try {
+        const response = await fetch(`/xml/requests/${filename}`);
+        const text = await response.text();
+        onLoadDelivery(text);
+      } catch (error) {
+        console.error("Error loading request:", error);
+        alert("Failed to load request file.");
+      }
     }
   };
 
   return (
-    <div className="control-panel" style={{ padding: '20px', borderTop: '1px solid #ccc' }}>
-      <div style={{ marginBottom: '10px' }}>
-        <button onClick={onLocateUser}>Locate Me</button>
+    <div className="control-panel">
+      {/* Left Column: Configuration */}
+      <div className="control-section">
+        <h3>Configuration</h3>
+        
+        <div>
+          <button onClick={onLocateUser} style={{ width: '100%' }}>Locate Me</button>
+        </div>
+
+        <div>
+          <label style={{ display: 'block', marginBottom: '5px' }}>Select Map:</label>
+          <select 
+            value={selectedMap} 
+            onChange={handleMapSelect} 
+            style={{ width: '100%', padding: '8px', border: '2px solid #1f2937' }}
+          >
+            <option value="">-- Select a Map --</option>
+            {MAP_FILES.map(file => (
+              <option key={file} value={file}>{file}</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label style={{ display: 'block', marginBottom: '5px' }}>Select Delivery Request:</label>
+          <select 
+            value={selectedRequest} 
+            onChange={handleRequestSelect} 
+            style={{ width: '100%', padding: '8px', border: '2px solid #1f2937' }}
+          >
+            <option value="">-- Select a Request --</option>
+            {REQUEST_FILES.map(file => (
+              <option key={file} value={file}>{file}</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label>Number of Couriers: </label>
+          <input 
+            type="number" 
+            min="1" 
+            value={courierCount} 
+            onChange={(e) => setCourierCount(parseInt(e.target.value))} 
+          />
+        </div>
       </div>
 
-      <div style={{ marginBottom: '10px' }}>
-        <label>Load Map XML: </label>
-        <input type="file" accept=".xml" onChange={handleMapUpload} />
-      </div>
+      {/* Right Column: Actions */}
+      <div className="control-section">
+        <h3>Actions</h3>
+        
+        <div>
+          <button 
+            onClick={onSetWarehouse} 
+            style={{ 
+              width: '100%', 
+              marginBottom: '10px',
+              backgroundColor: isSettingWarehouse ? '#fde047' : '#ffffff' 
+            }}
+          >
+            {isSettingWarehouse ? 'Click on Map to Set Warehouse' : 'Set Warehouse Location'}
+          </button>
 
-      <div style={{ marginBottom: '10px' }}>
-        <label>Load Delivery Request XML: </label>
-        <input type="file" accept=".xml" onChange={handleDeliveryUpload} />
-      </div>
+          <button 
+            onClick={deliveryCreationStep === 'review' ? onConfirmAdd : onStartAddDelivery} 
+            disabled={
+              deliveryCreationStep === 'select-pickup' || 
+              deliveryCreationStep === 'select-delivery' ||
+              (deliveryCreationStep === 'review' && (pickupDuration === '' || deliveryDuration === ''))
+            }
+            style={{ 
+              width: '100%', 
+              backgroundColor: (
+                deliveryCreationStep === 'select-pickup' || 
+                deliveryCreationStep === 'select-delivery' ||
+                (deliveryCreationStep === 'review' && (pickupDuration === '' || deliveryDuration === ''))
+              ) ? '#e5e7eb' : '#ffffff',
+              cursor: (
+                deliveryCreationStep === 'select-pickup' || 
+                deliveryCreationStep === 'select-delivery' ||
+                (deliveryCreationStep === 'review' && (pickupDuration === '' || deliveryDuration === ''))
+              ) ? 'not-allowed' : 'pointer'
+            }}
+          >
+            {deliveryCreationStep === 'idle' ? 'Add New Delivery' : 
+             deliveryCreationStep === 'select-pickup' ? 'Select Pickup Point on Map...' : 
+             deliveryCreationStep === 'select-delivery' ? 'Select Delivery Point on Map...' :
+             'Confirm Add'}
+          </button>
+          {deliveryCreationStep !== 'idle' && (
+            <div style={{ marginTop: '10px' }}>
+              <p style={{ fontSize: '0.8rem', marginBottom: '10px', color: '#6b7280' }}>
+                {deliveryCreationStep === 'select-pickup' ? 'Click on the map to set the pickup location.' : 
+                 deliveryCreationStep === 'select-delivery' ? 'Click on the map to set the delivery location.' :
+                 'Review the points on the map and click Confirm Add.'}
+              </p>
+              
+              <div style={{ display: 'flex', gap: '10px', flexDirection: 'column' }}>
+                <div>
+                  <label style={{ fontSize: '0.8rem' }}>Pickup Duration (sec) *:</label>
+                  <input 
+                    type="number" 
+                    min="0" 
+                    value={pickupDuration} 
+                    onChange={(e) => setPickupDuration(e.target.value)}
+                    style={{ width: '100%' }}
+                    required
+                    placeholder="Enter duration"
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.8rem' }}>Delivery Duration (sec) *:</label>
+                  <input 
+                    type="number" 
+                    min="0" 
+                    value={deliveryDuration} 
+                    onChange={(e) => setDeliveryDuration(e.target.value)}
+                    style={{ width: '100%' }}
+                    required
+                    placeholder="Enter duration"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
 
-      <div style={{ marginBottom: '10px' }}>
-        <label>Number of Couriers: </label>
-        <input 
-          type="number" 
-          min="1" 
-          value={courierCount} 
-          onChange={(e) => setCourierCount(parseInt(e.target.value))} 
-        />
-      </div>
-
-      <div style={{ marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-        <select 
-          value={selectedStopType} 
-          onChange={(e) => setSelectedStopType(e.target.value as StopType)}
-          style={{ padding: '5px' }}
-        >
-          <option value="pickup">Pickup</option>
-          <option value="delivery">Delivery</option>
-          <option value="warehouse">Warehouse</option>
-        </select>
-        <button onClick={() => onAddStop(selectedStopType)}>Add Stop</button>
-      </div>
-
-      <div style={{ marginBottom: '10px' }}>
-        <button onClick={onSaveRequest} style={{ marginRight: '10px' }}>Save Request</button>
-        <button onClick={onSendRequest}>Send to Server</button>
+        <div style={{ display: 'flex', gap: '10px', marginTop: 'auto' }}>
+          <button onClick={onSaveRequest} style={{ flex: 1 }}>Save Request</button>
+          <button onClick={onSendRequest} style={{ flex: 1 }}>Send to Server</button>
+        </div>
       </div>
     </div>
   );
