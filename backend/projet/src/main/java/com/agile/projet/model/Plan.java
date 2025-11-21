@@ -51,6 +51,19 @@ public class Plan {
         }
 
     }
+    public void printTroncons() {
+        for (Troncon t : vraiTroncons) {
+            System.out.println(
+                    "Tronçon : " +
+                            "origine=" + t.getOrigine().getId() +
+                            " (" + t.getOrigine().getLatitude() + ", " + t.getOrigine().getLongitude() + ")" +
+                            ", destination=" + t.getDestination().getId() +
+                            " (" + t.getDestination().getLatitude() + ", " + t.getDestination().getLongitude() + ")" +
+                            ", rue=" + t.getNomRue() +
+                            ", longueur=" + t.getLongueur()
+            );
+        }
+    }
 
     public void printNoeuds() {
         for (Noeud n : noeuds.values()) {
