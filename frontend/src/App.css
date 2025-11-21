@@ -1,0 +1,117 @@
+#root {
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  text-align: center;
+}
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+header {
+  background-color: #ff6b6b; /* Neobrutalism Red */
+  padding: 20px;
+  color: black;
+  border: 3px solid black;
+  box-shadow: 6px 6px 0px 0px #000000;
+  margin-bottom: 20px;
+  text-transform: uppercase;
+  letter-spacing: -1px;
+}
+
+header h1 {
+  margin: 0;
+  font-weight: 800;
+  font-size: 2.5rem;
+}
+
+main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.map-wrapper {
+  flex: 1;
+  position: relative;
+  border: 3px solid #000000;
+  box-shadow: 8px 8px 0px 0px #000000;
+  min-height: 400px;
+  background: white;
+}
+
+.mode-indicator {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #facc15; /* Yellow */
+  padding: 15px 25px;
+  border: 3px solid black;
+  box-shadow: 4px 4px 0px 0px #000000;
+  z-index: 1000;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mode-indicator button {
+  padding: 5px 10px;
+  font-size: 0.8rem;
+  background: white;
+  box-shadow: 2px 2px 0px 0px #000000;
+}
+
+.control-panel {
+  background: #ffffff;
+  border: 3px solid black;
+  box-shadow: 8px 8px 0px 0px #000000;
+  padding: 20px;
+  text-align: left;
+}
+
+.info-panel {
+  text-align: left;
+  padding: 20px;
+  background: #a5f3fc; /* Cyan */
+  border: 3px solid black;
+  box-shadow: 8px 8px 0px 0px #000000;
+}
+
+.info-panel h3 {
+  margin-top: 0;
+  text-transform: uppercase;
+  border-bottom: 3px solid black;
+  padding-bottom: 10px;
+  display: inline-block;
+}
+
+.info-panel ul {
+  list-style-type: square;
+  padding-left: 20px;
+}
+
+.info-panel li {
+  margin-bottom: 5px;
+  font-weight: 600;
+}
+
+input[type="file"] {
+  margin-left: 10px;
+  border: none;
+  box-shadow: none;
+  background: transparent;
+}
+
+input[type="number"] {
+  margin-left: 10px;
+  padding: 5px;
+  width: 80px;
+}
