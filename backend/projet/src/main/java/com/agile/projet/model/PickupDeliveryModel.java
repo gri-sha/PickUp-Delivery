@@ -9,6 +9,8 @@ public class PickupDeliveryModel {
         plan = new Plan();
         XmlPlanParser xmlPlanParser = new XmlPlanParser();
         xmlPlanParser.parsePlan("petitPlan.xml",plan);
+        plan.joinNoeudTroncons();
+        plan.printTroncons();
     }
 
 
