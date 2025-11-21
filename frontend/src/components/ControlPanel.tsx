@@ -20,10 +20,10 @@ interface ControlPanelProps {
   onSaveRequest: () => void;
   onSendRequest: () => void;
   deliveryCreationStep: 'idle' | 'select-pickup' | 'select-delivery' | 'review';
-  pickupDuration: number;
-  setPickupDuration: (duration: number) => void;
-  deliveryDuration: number;
-  setDeliveryDuration: (duration: number) => void;
+  pickupDuration: number | string;
+  setPickupDuration: (duration: number | string) => void;
+  deliveryDuration: number | string;
+  setDeliveryDuration: (duration: number | string) => void;
   onSetWarehouse: () => void;
   isSettingWarehouse: boolean;
 }
@@ -86,17 +86,8 @@ export default function ControlPanel({
       <div className="control-section">
         <h3>Configuration</h3>
         
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <button 
-            onClick={onSetWarehouse} 
-            style={{ 
-              flex: 1,
-              backgroundColor: isSettingWarehouse ? '#fde047' : '#ffffff' 
-            }}
-          >
-            {isSettingWarehouse ? 'Set Warehouse...' : 'Set Warehouse'}
-          </button>
-          <button onClick={onLocateUser} style={{ flex: 1 }}>Locate Me</button>
+        <div>
+          <button onClick={onLocateUser} style={{ width: '100%' }}>Locate Me</button>
         </div>
 
         <div>
@@ -144,12 +135,35 @@ export default function ControlPanel({
         
         <div>
           <button 
-            onClick={deliveryCreationStep === 'review' ? onConfirmAdd : onStartAddDelivery} 
-            disabled={deliveryCreationStep === 'select-pickup' || deliveryCreationStep === 'select-delivery'}
+            onClick={onSetWarehouse} 
             style={{ 
               width: '100%', 
-              backgroundColor: (deliveryCreationStep === 'select-pickup' || deliveryCreationStep === 'select-delivery') ? '#e5e7eb' : '#ffffff',
-              cursor: (deliveryCreationStep === 'select-pickup' || deliveryCreationStep === 'select-delivery') ? 'not-allowed' : 'pointer'
+              marginBottom: '10px',
+              backgroundColor: isSettingWarehouse ? '#fde047' : '#ffffff' 
+            }}
+          >
+            {isSettingWarehouse ? 'Click on Map to Set Warehouse' : 'Set Warehouse Location'}
+          </button>
+
+          <button 
+            onClick={deliveryCreationStep === 'review' ? onConfirmAdd : onStartAddDelivery} 
+            disabled={
+              deliveryCreationStep === 'select-pickup' || 
+              deliveryCreationStep === 'select-delivery' ||
+              (deliveryCreationStep === 'review' && (pickupDuration === '' || deliveryDuration === ''))
+            }
+            style={{ 
+              width: '100%', 
+              backgroundColor: (
+                deliveryCreationStep === 'select-pickup' || 
+                deliveryCreationStep === 'select-delivery' ||
+                (deliveryCreationStep === 'review' && (pickupDuration === '' || deliveryDuration === ''))
+              ) ? '#e5e7eb' : '#ffffff',
+              cursor: (
+                deliveryCreationStep === 'select-pickup' || 
+                deliveryCreationStep === 'select-delivery' ||
+                (deliveryCreationStep === 'review' && (pickupDuration === '' || deliveryDuration === ''))
+              ) ? 'not-allowed' : 'pointer'
             }}
           >
             {deliveryCreationStep === 'idle' ? 'Add New Delivery' : 
@@ -167,23 +181,27 @@ export default function ControlPanel({
               
               <div style={{ display: 'flex', gap: '10px', flexDirection: 'column' }}>
                 <div>
-                  <label style={{ fontSize: '0.8rem' }}>Pickup Duration (sec):</label>
+                  <label style={{ fontSize: '0.8rem' }}>Pickup Duration (sec) *:</label>
                   <input 
                     type="number" 
                     min="0" 
                     value={pickupDuration} 
-                    onChange={(e) => setPickupDuration(parseInt(e.target.value) || 0)}
+                    onChange={(e) => setPickupDuration(e.target.value)}
                     style={{ width: '100%' }}
+                    required
+                    placeholder="Enter duration"
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '0.8rem' }}>Delivery Duration (sec):</label>
+                  <label style={{ fontSize: '0.8rem' }}>Delivery Duration (sec) *:</label>
                   <input 
                     type="number" 
                     min="0" 
                     value={deliveryDuration} 
-                    onChange={(e) => setDeliveryDuration(parseInt(e.target.value) || 0)}
+                    onChange={(e) => setDeliveryDuration(e.target.value)}
                     style={{ width: '100%' }}
+                    required
+                    placeholder="Enter duration"
                   />
                 </div>
               </div>

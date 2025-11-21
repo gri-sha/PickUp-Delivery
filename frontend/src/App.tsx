@@ -18,8 +18,8 @@ function App() {
   const [customStops, setCustomStops] = useState<CustomStop[]>([]);
   const [tempPickupNode, setTempPickupNode] = useState<Node | null>(null);
   const [tempDeliveryNode, setTempDeliveryNode] = useState<Node | null>(null);
-  const [pickupDuration, setPickupDuration] = useState<number>(0);
-  const [deliveryDuration, setDeliveryDuration] = useState<number>(0);
+  const [pickupDuration, setPickupDuration] = useState<number | string>('');
+  const [deliveryDuration, setDeliveryDuration] = useState<number | string>('');
 
   const handleLoadMap = async (xmlText: string) => {
     try {
@@ -128,8 +128,8 @@ function App() {
     setClickMode('selectPickup');
     setTempPickupNode(null);
     setTempDeliveryNode(null);
-    setPickupDuration(0);
-    setDeliveryDuration(0);
+    setPickupDuration('');
+    setDeliveryDuration('');
   };
 
   const handleSetWarehouse = () => {
@@ -147,20 +147,20 @@ function App() {
         latitude: tempPickupNode.latitude,
         longitude: tempPickupNode.longitude,
         type: 'pickup',
-        duration: pickupDuration
+        duration: Number(pickupDuration) || 0
       };
       const newDelivery: CustomStop = {
         nodeId: tempDeliveryNode.id,
         latitude: tempDeliveryNode.latitude,
         longitude: tempDeliveryNode.longitude,
         type: 'delivery',
-        duration: deliveryDuration
+        duration: Number(deliveryDuration) || 0
       };
       setCustomStops([...customStops, newPickup, newDelivery]);
       setTempPickupNode(null);
       setTempDeliveryNode(null);
-      setPickupDuration(0);
-      setDeliveryDuration(0);
+      setPickupDuration('');
+      setDeliveryDuration('');
       setClickMode('default');
     }
   };
