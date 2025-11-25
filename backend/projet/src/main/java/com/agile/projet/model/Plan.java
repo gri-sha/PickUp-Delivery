@@ -34,11 +34,11 @@ public class Plan {
             Noeud noeudDestination = null;
             int found = 0;
             for(Noeud n :noeuds.values()){
-                if(t.getDestination1() == n.getId()){
+                if(t.getDestination() == n.getId()){
                     noeudDestination = n;
                     found += 1;
                 }
-                if(t.getOrigine1() == n.getId()){
+                if(t.getOrigine() == n.getId()){
                     noeudOrigine = n;
                     found += 1;
                 }
@@ -55,10 +55,10 @@ public class Plan {
         for (Troncon t : vraiTroncons) {
             System.out.println(
                     "Tronçon : " +
-                            "origine=" + t.getOrigine().getId() +
-                            " (" + t.getOrigine().getLatitude() + ", " + t.getOrigine().getLongitude() + ")" +
-                            ", destination=" + t.getDestination().getId() +
-                            " (" + t.getDestination().getLatitude() + ", " + t.getDestination().getLongitude() + ")" +
+                            "origine=" + t.getOrigineNoeud().getId() +
+                            " (" + t.getOrigineNoeud().getLatitude() + ", " + t.getOrigineNoeud().getLongitude() + ")" +
+                            ", destination=" + t.getDestinationNoeud().getId() +
+                            " (" + t.getDestinationNoeud().getLatitude() + ", " + t.getDestinationNoeud().getLongitude() + ")" +
                             ", rue=" + t.getNomRue() +
                             ", longueur=" + t.getLongueur()
             );
