@@ -24,17 +24,23 @@ public class CalculPlusCoursChemins {
             graph.addVertex(troncon.getDestination());
             graph.addVertex(troncon.getOrigine());
             DefaultWeightedEdge e = graph.addEdge(troncon.getDestination(), troncon.getOrigine());
-            graph.setEdgeWeight(e, 1);
+            graph.setEdgeWeight(e, troncon.getLongueur());
         }
         FloydWarshallShortestPaths<Long, DefaultWeightedEdge> fw =
                 new FloydWarshallShortestPaths<>(graph);
 
         for(Delivery delivery : demandeDelivery.getDeliveries()){
-            GraphPath<Long, DefaultWeightedEdge> path = fw.getPath(delivery.getAdresseEnlevement(), delivery.getAdresseLivraison());
-            GraphPath<Long, DefaultWeightedEdge> path2 = fw.getPath(delivery.getAdresseLivraison(), delivery.getAdresseEnlevement());
+            //GraphPath<Long, DefaultWeightedEdge> path = fw.getPath(delivery.getAdresseEnlevement(), delivery.getAdresseLivraison());
+            //GraphPath<Long, DefaultWeightedEdge> path2 = fw.getPath(delivery.getAdresseLivraison(), delivery.getAdresseEnlevement());
+            double dist = fw.getPathWeight(delivery.getAdresseEnlevement(), delivery.getAdresseLivraison());
+            double dist2 = fw.getPathWeight(delivery.getAdresseLivraison(), delivery.getAdresseEnlevement());
 
-            System.out.println("   chemin = " + (path != null ? path.getVertexList() : "aucun"));
-            System.out.println("   chemin = " + (path2 != null ? path2.getVertexList() : "aucun"));
+            System.out.println("distence entre" + delivery.getAdresseEnlevement() +" et " + delivery.getAdresseLivraison() + " = " + dist);
+            System.out.println("distence entre" + delivery.getAdresseLivraison() +" et " + delivery.getAdresseEnlevement() + " = " + dist2
+            );
+
+            //System.out.println("   chemin = " + (path != null ? path.getVertexList() : "aucun"));
+            //System.out.println("   chemin = " + (path2 != null ? path2.getVertexList() : "aucun"));
         }
 
 
