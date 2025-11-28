@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, Suspense, lazy } from 'react'; // Import Suspense and lazy
 import './App.css';
-import MapComponent from './components/MapComponent';
+const MapComponent = lazy(() => import('./components/MapComponent'));
 import ControlPanel from './components/ControlPanel';
-import { parseMapXML, parseDeliveryXML, findNearestNode } from './utils/xmlParser';
+import { parseMapXML, parseDeliveryXML, findNearestNode, generateDeliveryXML } from './utils/xmlParser';
 import type { MapData, DeliveryRequest, CustomStop, Node } from './types';
 
 type ClickMode = 'default' | 'setUserLocation' | 'selectPickup' | 'selectDelivery' | 'reviewNewDelivery' | 'setWarehouse';
@@ -165,14 +165,65 @@ function App() {
     }
   };
 
-  const handleSaveRequest = () => {
-    console.log("Saving request with custom stops:", customStops);
-    alert("Request saved (check console for details).");
+  const handleSaveRequest = async () => {
+    if (!deliveryRequest && customStops.length === 0) {
+      alert("No delivery request to save.");
+      return;
+    }
+
+    const filename = prompt("Enter filename to save (e.g., myRequest.xml):", "newRequest.xml");
+    if (!filename) return;
+
+    const xmlContent = generateDeliveryXML(deliveryRequest, customStops);
+    const blob = new Blob([xmlContent], { type: "text/xml" });
+    const file = new File([blob], filename, { type: "text/xml" });
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const response = await fetch("http://localhost:8080/upload-request", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        alert(`File saved successfully: ${result.filename}`);
+      } else {
+        const errorText = await response.text();
+        console.error("Upload failed:", errorText);
+        alert("Failed to save request to server.");
+      }
+    } catch (error) {
+      console.error("Error saving request:", error);
+      alert("Error saving request to server.");
+    }
   };
 
   const handleSendRequest = () => {
     console.log("Sending request to server...");
     alert("Request sent to server!");
+  };
+
+  const handleDeleteLoadedDelivery = (index: number) => {
+    if (deliveryRequest) {
+      const updatedDeliveries = [...deliveryRequest.deliveries];
+      updatedDeliveries.splice(index, 1);
+      setDeliveryRequest({
+        ...deliveryRequest,
+        deliveries: updatedDeliveries
+      });
+    }
+  };
+
+  const handleDeleteCustomDelivery = (index: number) => {
+    // Each delivery consists of 2 stops (pickup + delivery)
+    // index 0 corresponds to stops 0 and 1
+    // index 1 corresponds to stops 2 and 3
+    const updatedStops = [...customStops];
+    updatedStops.splice(index * 2, 2);
+    setCustomStops(updatedStops);
   };
 
   // Helper to determine current step for ControlPanel
@@ -210,13 +261,15 @@ function App() {
       
       <main>
         <div className="map-wrapper">
-          <MapComponent 
-            mapData={mapData} 
-            deliveryRequest={deliveryRequest}
-            userLocation={userLocation}
-            customStops={displayStops}
-            onMapClick={handleMapClick}
-          />
+          <Suspense fallback={<div className="loading-map">Loading Map...</div>}>
+            <MapComponent 
+              mapData={mapData} 
+              deliveryRequest={deliveryRequest}
+              userLocation={userLocation}
+              customStops={displayStops}
+              onMapClick={handleMapClick}
+            />
+          </Suspense>
           {clickMode !== 'default' && (
             <div className="mode-indicator">
               {clickMode === 'setUserLocation' ? 'Click on map to set your location' : 
@@ -273,8 +326,23 @@ function App() {
                 <h4>Loaded Deliveries</h4>
                 <ul>
                   {deliveryRequest.deliveries.map((d, i) => (
-                    <li key={`loaded-${i}`}>
-                      Delivery {i + 1}: Pickup ({d.pickupNodeId}, {d.pickupDuration}s) {'->'} Delivery ({d.deliveryNodeId}, {d.deliveryDuration}s)
+                    <li key={`loaded-${i}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>
+                        Delivery {i + 1}: Pickup ({d.pickupNodeId}, {d.pickupDuration}s) {'->'} Delivery ({d.deliveryNodeId}, {d.deliveryDuration}s)
+                      </span>
+                      <button 
+                        onClick={() => handleDeleteLoadedDelivery(i)}
+                        style={{ 
+                          marginLeft: '10px', 
+                          padding: '2px 8px', 
+                          backgroundColor: '#fca5a5', 
+                          border: '2px solid black',
+                          cursor: 'pointer',
+                          fontSize: '0.8rem'
+                        }}
+                      >
+                        X
+                      </button>
                     </li>
                   ))}
                 </ul>
@@ -290,8 +358,23 @@ function App() {
                     const pickup = customStops[i * 2];
                     const delivery = customStops[i * 2 + 1];
                     return (
-                      <li key={`custom-${i}`}>
-                        Delivery {i + 1}: Pickup ({pickup.nodeId}, {pickup.duration || 0}s) {'->'} Delivery ({delivery ? delivery.nodeId : '...'}, {delivery?.duration || 0}s)
+                      <li key={`custom-${i}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span>
+                          Delivery {i + 1}: Pickup ({pickup.nodeId}, {pickup.duration || 0}s) {'->'} Delivery ({delivery ? delivery.nodeId : '...'}, {delivery?.duration || 0}s)
+                        </span>
+                        <button 
+                          onClick={() => handleDeleteCustomDelivery(i)}
+                          style={{ 
+                            marginLeft: '10px', 
+                            padding: '2px 8px', 
+                            backgroundColor: '#fca5a5', 
+                            border: '2px solid black',
+                            cursor: 'pointer',
+                            fontSize: '0.8rem'
+                          }}
+                        >
+                          X
+                        </button>
                       </li>
                     );
                   })}
