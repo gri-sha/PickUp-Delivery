@@ -1,4 +1,4 @@
-import type { MapData, Node, Segment, DeliveryRequest, Warehouse, Delivery } from '../types';
+import type { MapData, Node, Segment, DeliveryRequest, Warehouse, Delivery, CustomStop } from '../types';
 
 export const parseMapXML = (xmlText: string): MapData => {
   const parser = new DOMParser();
@@ -92,4 +92,44 @@ export const findNearestNode = (mapData: MapData, lat: number, lng: number): Nod
   });
 
   return nearestNode;
+};
+
+export const generateDeliveryXML = (deliveryRequest: DeliveryRequest | null, customStops: CustomStop[]): string => {
+  if (!deliveryRequest && customStops.length === 0) {
+    return "";
+  }
+
+  let xml = '<?xml version="1.0" encoding="UTF-8"?>\n<demandeDeLivraisons>\n';
+
+  // Warehouse
+  if (deliveryRequest?.warehouse) {
+    xml += `    <entrepot adresse="${deliveryRequest.warehouse.nodeId}" heureDepart="${deliveryRequest.warehouse.departureTime}"/>\n`;
+  } else {
+    // Default warehouse if not present but custom stops exist? 
+    // Ideally we should have a warehouse set if we are saving.
+    // For now, let's assume if deliveryRequest is null, we might not have a warehouse, 
+    // but the user might have set one via "Set Warehouse".
+    // However, the current App state updates deliveryRequest when setting warehouse.
+    // So deliveryRequest should be populated if a warehouse is set.
+  }
+
+  // Existing Deliveries
+  if (deliveryRequest?.deliveries) {
+    deliveryRequest.deliveries.forEach(d => {
+      xml += `    <livraison adresseEnlevement="${d.pickupNodeId}" adresseLivraison="${d.deliveryNodeId}" dureeEnlevement="${d.pickupDuration}" dureeLivraison="${d.deliveryDuration}"/>\n`;
+    });
+  }
+
+  // Custom Deliveries
+  // customStops are stored as [pickup, delivery, pickup, delivery, ...]
+  for (let i = 0; i < customStops.length; i += 2) {
+    const pickup = customStops[i];
+    const delivery = customStops[i + 1];
+    if (pickup && delivery) {
+      xml += `    <livraison adresseEnlevement="${pickup.nodeId}" adresseLivraison="${delivery.nodeId}" dureeEnlevement="${pickup.duration || 0}" dureeLivraison="${delivery.duration || 0}"/>\n`;
+    }
+  }
+
+  xml += '</demandeDeLivraisons>';
+  return xml;
 };

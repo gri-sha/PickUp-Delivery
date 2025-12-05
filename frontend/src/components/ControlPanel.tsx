@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { RefreshCw } from "lucide-react";
 
 interface ControlPanelProps {
   onLoadMap: (xmlText: string) => void;
@@ -80,28 +81,33 @@ export default function ControlPanel({
     }
   };
 
-  React.useEffect(() => {
-    const fetchMapFiles = async () => {
-      try {
-        const response = await fetch("http://localhost:8080/plan-names");
-        const data = await response.json();
-        setMapFiles(data);
-      } catch (error) {
-        console.error("Error fetching map files:", error);
-      }
-    };
-    const fetchRequestFiles = async () => {
-      try {
-        const response = await fetch("http://localhost:8080/request-names");
-        const data = await response.json();
-        setRequestFiles(data);
-      } catch (error) {
-        console.error("Error fetching request files:", error);
-      }
-    };
-    fetchRequestFiles();
-    fetchMapFiles();
+  const fetchMapFiles = useCallback(async () => {
+    try {
+      const response = await fetch("http://localhost:8080/plan-names");
+      const data = await response.json();
+      setMapFiles(data);
+    } catch (error) {
+      console.error("Error fetching map files:", error);
+    }
   }, []);
+
+  const fetchRequestFiles = useCallback(async () => {
+    try {
+      const response = await fetch("http://localhost:8080/request-names");
+      const data = await response.json();
+      setRequestFiles(data);
+    } catch (error) {
+      console.error("Error fetching request files:", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    const loadData = async () => {
+      await fetchRequestFiles();
+      await fetchMapFiles();
+    };
+    loadData();
+  }, [fetchMapFiles, fetchRequestFiles]);
 
   return (
     <div className="control-panel">
@@ -116,9 +122,12 @@ export default function ControlPanel({
         </div>
 
         <div>
-          <label style={{ display: "block", marginBottom: "5px" }}>
-            Select Map:
-          </label>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "5px" }}>
+            <label>Select Map:</label>
+            <button onClick={fetchMapFiles} style={{ padding: "4px 8px", fontSize: "0.8rem", display: "flex", alignItems: "center", gap: "4px", cursor: "pointer" }} title="Refresh Map List">
+               <RefreshCw size={12} />
+            </button>
+          </div>
           <select
             value={selectedMap}
             onChange={handleMapSelect}
@@ -138,9 +147,12 @@ export default function ControlPanel({
         </div>
 
         <div>
-          <label style={{ display: "block", marginBottom: "5px" }}>
-            Select Delivery Request:
-          </label>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "5px" }}>
+            <label>Select Delivery Request:</label>
+            <button onClick={fetchRequestFiles} style={{ padding: "4px 8px", fontSize: "0.8rem", display: "flex", alignItems: "center", gap: "4px", cursor: "pointer" }} title="Refresh Request List">
+               <RefreshCw size={12} />
+            </button>
+          </div>
           <select
             value={selectedRequest}
             onChange={handleRequestSelect}
@@ -208,7 +220,7 @@ export default function ControlPanel({
                 (deliveryCreationStep === "review" &&
                   (pickupDuration === "" || deliveryDuration === ""))
                   ? "#e5e7eb"
-                  : "#ffffff",
+                  : deliveryCreationStep === "review" ? "#86efac" : "#ffffff",
               cursor:
                 deliveryCreationStep === "select-pickup" ||
                 deliveryCreationStep === "select-delivery" ||
@@ -287,7 +299,7 @@ export default function ControlPanel({
             Save Request
           </button>
           <button onClick={onSendRequest} style={{ flex: 1 }}>
-            Send to Server
+            Calculate TSP
           </button>
         </div>
       </div>
