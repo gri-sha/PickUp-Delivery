@@ -20,10 +20,11 @@ public class ApiController {
     Controller controller;
 
 
-    @GetMapping("/") //if a request goes to the root of our web site, it will be called (argument "/")
-    public void index()  {
+    @GetMapping("/") //if a request goes to the root of our website, it will be called (argument "/")
+    public void index() throws Exception {
         controller.createPlan("petitPlan.xml");
-
+        controller.createDeliveryFromXml("demandeMoyen5.xml");
+        controller.computeShortestPaths();
         System.out.println("Hello World");
 
 
