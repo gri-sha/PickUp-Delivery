@@ -27,23 +27,20 @@ public class Plan {
     public List<Troncon> getTroncons() {
         return troncons;
     }
+    public List<Troncon> getVraiTroncons() {
+        return vraiTroncons;
+    }
+
+    public Noeud getNoeudById(Long id) {
+        return noeuds.get(id);
+    }
 
     public void joinNoeudTroncons(){
         for(Troncon t : troncons){
-            Noeud noeudOrigine = null;
-            Noeud noeudDestination = null;
-            int found = 0;
-            for(Noeud n :noeuds.values()){
-                if(t.getDestination() == n.getId()){
-                    noeudDestination = n;
-                    found += 1;
-                }
-                if(t.getOrigine() == n.getId()){
-                    noeudOrigine = n;
-                    found += 1;
-                }
-                if(found == 2){found = 0;break;}
-            }
+            Noeud noeudOrigine = this.getNoeudById(t.getOrigine());
+            Noeud noeudDestination = this.getNoeudById(t.getDestination());
+
+            System.out.println(noeudDestination);
 
 
             Troncon troncon = new Troncon(noeudOrigine, noeudDestination, t.getLongueur(), t.getNomRue());
