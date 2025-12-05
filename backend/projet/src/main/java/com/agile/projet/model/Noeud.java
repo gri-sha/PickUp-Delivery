@@ -30,7 +30,25 @@ public class Noeud {
         return longitude;
     }
 
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        Noeud other = (Noeud) obj;
+        return this.id == other.id;
+    }
 
+    @Override
+    public int hashCode() {
+        return Long.hashCode(id);
+    }
+
+    @Override
+    public String toString() {
+        return "Noeud{" +
+                "id=" + id +
+                '}';
+    }
 
     // Optionnel : toString()
 }

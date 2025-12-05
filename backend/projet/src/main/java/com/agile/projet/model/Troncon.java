@@ -25,6 +25,14 @@ public class Troncon {
         this.nomRue = nomRue;
     }
 
+    public void setOrigineNoeud(Noeud origineNoeud) {
+        this.origineNoeud = origineNoeud;
+    }
+
+    public void setDestinationNoeud(Noeud destinationNoeud) {
+        this.destinationNoeud = destinationNoeud;
+    }
+
     public Noeud getOrigineNoeud() {
         return origineNoeud;
     }

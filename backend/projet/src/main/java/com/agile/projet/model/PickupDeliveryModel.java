@@ -12,7 +12,7 @@ public class PickupDeliveryModel {
         XmlPlanParser xmlPlanParser = new XmlPlanParser();
         xmlPlanParser.parsePlan(planXml,plan);
         plan.joinNoeudTroncons();
-        plan.printTroncons();
+
     }
 
     public void createDelivery(String deliveryXml) throws Exception {

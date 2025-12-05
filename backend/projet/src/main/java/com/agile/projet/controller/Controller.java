@@ -16,6 +16,9 @@ public class Controller {
     {
         pickupDeliveryModel.createPlan(planXml);
         pickupDeliveryModel.plan.printNoeuds();
+        pickupDeliveryModel.plan.printTroncons();
+
+
     }
 
     public void createDeliveryFromXml(String deliveryPlanXml) throws Exception {
@@ -25,6 +28,7 @@ public class Controller {
 
     public void computeShortestPaths(){
         CalculPlusCoursChemins calculPlusCoursChemins = new CalculPlusCoursChemins();
-        calculPlusCoursChemins.compute(pickupDeliveryModel.plan, pickupDeliveryModel.demandeDelivery);
+        //calculPlusCoursChemins.compute(pickupDeliveryModel.plan, pickupDeliveryModel.demandeDelivery);
+        calculPlusCoursChemins.computeAstar(pickupDeliveryModel.plan, pickupDeliveryModel.demandeDelivery);
     }
 }
