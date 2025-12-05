@@ -30,6 +30,13 @@ public class DemandeDelivery {
     public List<Delivery> getDeliveries() {
         return deliveries;
     }
+    public Entrepot entrepot;
+    public void setEntrepot(Entrepot entrepot) {
+        this.entrepot = entrepot;
+    }
+    public Entrepot getEntrepot() {
+        return entrepot;
+    }
 
 
 }

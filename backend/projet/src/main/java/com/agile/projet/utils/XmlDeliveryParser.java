@@ -2,6 +2,7 @@ package com.agile.projet.utils;
 
 import com.agile.projet.model.DemandeDelivery;
 import com.agile.projet.model.Delivery;
+import com.agile.projet.model.Entrepot;
 import org.w3c.dom.*;
 import javax.xml.parsers.*;
 import java.io.File;
@@ -23,7 +24,18 @@ public class XmlDeliveryParser {
 
         // Lire tous les noeuds <livraison>
         NodeList livraisonNodes = doc.getElementsByTagName("livraison");
+        NodeList entrepotNodes = doc.getElementsByTagName("entrepot");
+        if (entrepotNodes.getLength() > 0) {
+            Element entrepotElement = (Element) entrepotNodes.item(0);
 
+            long adresse = Long.parseLong(entrepotElement.getAttribute("adresse"));
+            String heureDepart = entrepotElement.getAttribute("heureDepart");
+
+            Entrepot entrepot = new Entrepot(adresse, heureDepart);
+            demande.setEntrepot(entrepot);
+
+            System.out.println("Entrep├┤t lu : " + entrepot);
+        }
         for (int i = 0; i < livraisonNodes.getLength(); i++) {
             Node node = livraisonNodes.item(i);
 
@@ -36,7 +48,7 @@ public class XmlDeliveryParser {
                 String dureeEnlevement      = e.getAttribute("dureeEnlevement");
                 String dureeLivraison       = e.getAttribute("dureeLivraison");
 
-                // Créer un objet Delivery
+                // Cr├®er un objet Delivery
                 Delivery d = new Delivery(
                         Long.parseLong(adresseEnlevement),
                         Long.parseLong(adresseLivraison),
@@ -44,7 +56,7 @@ public class XmlDeliveryParser {
                         Long.parseLong(dureeLivraison)
                 );
 
-                // Ajouter à DemandeDelivery
+                // Ajouter ├á DemandeDelivery
                 demande.addDelivery(d);
             }
         }
