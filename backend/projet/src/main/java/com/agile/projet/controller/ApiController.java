@@ -10,12 +10,16 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController  //telling java that this class is used for internet and requests trafic
 @CrossOrigin(origins = "http://localhost:5173")
@@ -116,7 +120,42 @@ public String[] getPlanNames() throws IOException {
     return ResponseEntity.ok(content);  
 }
     
+    @PostMapping("/upload-request")
+    public ResponseEntity<Map<String, String>> uploadRequest(@RequestParam("file") MultipartFile file) {
+        try {
+            if (file.isEmpty()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "File is empty");
+                return ResponseEntity.badRequest().body(error);
+            }
+
+            String filename = file.getOriginalFilename();
+            Path requestsDir = Paths.get("src/main/resources/requests").toAbsolutePath();
+
+            // Créer le dossier s'il n'existe pas
+            if (!Files.exists(requestsDir)) {
+                Files.createDirectories(requestsDir);
+            }
+
+            Path targetPath = requestsDir.resolve(filename);
+            Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+
+            System.err.println("File saved: " + targetPath.toAbsolutePath());
+
+            Map<String, String> response = new HashMap<>();
+            response.put("filename", filename);
+            response.put("path", targetPath.toAbsolutePath().toString());
+            response.put("status", "success");
+            return ResponseEntity.ok(response);
+
+        } catch (IOException e) {
+            System.err.println("Error saving file: " + e.getMessage());
+            e.printStackTrace();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.internalServerError().body(error);
+        }
+    }
 
 
-    
 }

@@ -18,6 +18,12 @@ interface ControlPanelProps {
   setDeliveryDuration: (duration: number | string) => void;
   onSetWarehouse: () => void;
   isSettingWarehouse: boolean;
+  onStartCollectNodes: () => void;
+  onStopCollectNodes: () => void;
+  onSaveClickedNodes: () => void;
+  onClearClickedNodes: () => void;
+  isCollectingNodes: boolean;
+  clickedNodesCount: number;
 }
 
 export default function ControlPanel({
@@ -37,6 +43,12 @@ export default function ControlPanel({
   setDeliveryDuration,
   onSetWarehouse,
   isSettingWarehouse,
+  onStartCollectNodes,
+  onStopCollectNodes,
+  onSaveClickedNodes,
+  onClearClickedNodes,
+  isCollectingNodes,
+  clickedNodesCount,
 }: ControlPanelProps) {
   const [MAP_FILES, setMapFiles] = useState<string[]>([]);
   const [REQUEST_FILES, setRequestFiles] = useState<string[]>([]);
@@ -199,6 +211,67 @@ export default function ControlPanel({
               ? "Click on Map to Set Warehouse"
               : "Set Warehouse Location"}
           </button>
+
+          {/* Section Collect Nodes */}
+          <div style={{
+            border: "2px solid #1f2937",
+            padding: "10px",
+            marginBottom: "10px",
+            backgroundColor: isCollectingNodes ? "#fef3c7" : "#f9fafb"
+          }}>
+            <h4 style={{ marginTop: 0, marginBottom: "10px", fontSize: "0.9rem" }}>
+              Click & Collect Nodes
+            </h4>
+            <p style={{ fontSize: "0.75rem", color: "#6b7280", marginBottom: "10px" }}>
+              {isCollectingNodes
+                ? `Collected: ${clickedNodesCount} nodes (1st=warehouse, then pairs)`
+                : "Click nodes on map to create delivery request"}
+            </p>
+            <div style={{ display: "flex", gap: "5px", marginBottom: "5px" }}>
+              {!isCollectingNodes ? (
+                <button
+                  onClick={onStartCollectNodes}
+                  style={{ flex: 1, backgroundColor: "#86efac" }}
+                >
+                  Start Collecting
+                </button>
+              ) : (
+                <button
+                  onClick={onStopCollectNodes}
+                  style={{ flex: 1, backgroundColor: "#fca5a5" }}
+                >
+                  Stop
+                </button>
+              )}
+            </div>
+            <div style={{ display: "flex", gap: "5px" }}>
+              <button
+                onClick={onClearClickedNodes}
+                disabled={clickedNodesCount === 0}
+                style={{
+                  flex: 1,
+                  fontSize: "0.8rem",
+                  opacity: clickedNodesCount === 0 ? 0.5 : 1,
+                  cursor: clickedNodesCount === 0 ? "not-allowed" : "pointer"
+                }}
+              >
+                Clear
+              </button>
+              <button
+                onClick={onSaveClickedNodes}
+                disabled={clickedNodesCount === 0}
+                style={{
+                  flex: 1,
+                  fontSize: "0.8rem",
+                  backgroundColor: clickedNodesCount > 0 ? "#93c5fd" : "#e5e7eb",
+                  opacity: clickedNodesCount === 0 ? 0.5 : 1,
+                  cursor: clickedNodesCount === 0 ? "not-allowed" : "pointer"
+                }}
+              >
+                Save as XML
+              </button>
+            </div>
+          </div>
 
           <button
             onClick={

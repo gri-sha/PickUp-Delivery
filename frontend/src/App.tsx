@@ -5,7 +5,7 @@ import ControlPanel from './components/ControlPanel';
 import { parseMapXML, parseDeliveryXML, findNearestNode, generateDeliveryXML } from './utils/xmlParser';
 import type { MapData, DeliveryRequest, CustomStop, Node } from './types';
 
-type ClickMode = 'default' | 'setUserLocation' | 'selectPickup' | 'selectDelivery' | 'reviewNewDelivery' | 'setWarehouse';
+type ClickMode = 'default' | 'setUserLocation' | 'selectPickup' | 'selectDelivery' | 'reviewNewDelivery' | 'setWarehouse' | 'collectNodes';
 
 function App() {
   const [mapData, setMapData] = useState<MapData | null>(null);
@@ -13,7 +13,8 @@ function App() {
   const [courierCount, setCourierCount] = useState<number>(1);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [clickMode, setClickMode] = useState<ClickMode>('default');
-  
+  const [clickedNodes, setClickedNodes] = useState<Node[]>([]);
+
   // New state for delivery creation
   const [customStops, setCustomStops] = useState<CustomStop[]>([]);
   const [tempPickupNode, setTempPickupNode] = useState<Node | null>(null);
@@ -66,6 +67,23 @@ function App() {
     if (clickMode === 'setUserLocation') {
       setUserLocation({ lat, lng });
       setClickMode('default');
+    } else if (clickMode === 'collectNodes') {
+      if (mapData) {
+        const nearestNode = findNearestNode(mapData, lat, lng);
+        if (nearestNode) {
+          // Vérifier si le noeud n'est pas déjà dans la liste
+          const alreadyExists = clickedNodes.some(node => node.id === nearestNode.id);
+          if (!alreadyExists) {
+            setClickedNodes([...clickedNodes, nearestNode]);
+          } else {
+            alert("Ce noeud est déjà dans la liste.");
+          }
+        } else {
+          alert("Could not find a nearby node on the map.");
+        }
+      } else {
+        alert("Please load a map first.");
+      }
     } else if (clickMode === 'selectPickup') {
       if (mapData) {
         const nearestNode = findNearestNode(mapData, lat, lng);
@@ -140,6 +158,73 @@ function App() {
     setClickMode('setWarehouse');
   };
 
+  const handleStartCollectNodes = () => {
+    if (!mapData) {
+      alert("Please load a map first.");
+      return;
+    }
+    setClickMode('collectNodes');
+  };
+
+  const handleStopCollectNodes = () => {
+    setClickMode('default');
+  };
+
+  const handleClearClickedNodes = () => {
+    setClickedNodes([]);
+  };
+
+  const handleSaveClickedNodes = async () => {
+    if (clickedNodes.length === 0) {
+      alert("No nodes collected yet.");
+      return;
+    }
+
+    const filename = prompt("Enter filename to save (e.g., clickedNodes.xml):", "clickedNodes.xml");
+    if (!filename) return;
+
+    // Générer le XML avec les noeuds cliqués
+    let xmlContent = '<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n';
+    xmlContent += '<demandeDeLivraisons>\n';
+
+    // Premier noeud = entrepot par défaut
+    xmlContent += `    <entrepot adresse="${clickedNodes[0].id}" heureDepart="8:0:0"/>\n`;
+
+    // Les autres noeuds en paires (pickup -> delivery)
+    for (let i = 1; i < clickedNodes.length; i += 2) {
+      if (i + 1 < clickedNodes.length) {
+        xmlContent += `    <livraison adresseEnlevement="${clickedNodes[i].id}" adresseLivraison="${clickedNodes[i + 1].id}" dureeEnlevement="180" dureeLivraison="240"/>\n`;
+      }
+    }
+
+    xmlContent += '</demandeDeLivraisons>\n';
+
+    const blob = new Blob([xmlContent], { type: "text/xml" });
+    const file = new File([blob], filename, { type: "text/xml" });
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const response = await fetch("http://localhost:8080/upload-request", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        alert(`File saved successfully!\n\nFilename: ${result.filename}\nPath: ${result.path}`);
+      } else {
+        const errorText = await response.text();
+        console.error("Upload failed:", errorText);
+        alert("Failed to save request to server.");
+      }
+    } catch (error) {
+      console.error("Error saving request:", error);
+      alert("Error saving request to server.");
+    }
+  };
+
   const handleConfirmAdd = () => {
     if (tempPickupNode && tempDeliveryNode) {
       const newPickup: CustomStop = {
@@ -189,7 +274,7 @@ function App() {
 
       if (response.ok) {
         const result = await response.json();
-        alert(`File saved successfully: ${result.filename}`);
+        alert(`File saved successfully!\n\nFilename: ${result.filename}\nPath: ${result.path}`);
       } else {
         const errorText = await response.text();
         console.error("Upload failed:", errorText);
@@ -252,6 +337,15 @@ function App() {
       type: 'delivery'
     });
   }
+  // Ajouter les noeuds cliqués
+  clickedNodes.forEach((node, idx) => {
+    displayStops.push({
+      nodeId: node.id,
+      latitude: node.latitude,
+      longitude: node.longitude,
+      type: idx === 0 ? 'warehouse' : (idx % 2 === 1 ? 'pickup' : 'delivery')
+    });
+  });
 
   return (
     <div className="app-container">
@@ -273,7 +367,8 @@ function App() {
           {clickMode !== 'default' && (
             <div className="mode-indicator">
               {clickMode === 'setUserLocation' ? 'Click on map to set your location' : 
-               clickMode === 'selectPickup' ? 'Click on map to set Pickup point' : 
+               clickMode === 'collectNodes' ? 'Click on map nodes to collect them (1st=warehouse, then pairs pickup->delivery)' :
+               clickMode === 'selectPickup' ? 'Click on map to set Pickup point' :
                clickMode === 'selectDelivery' ? 'Click on map to set Delivery point' :
                clickMode === 'setWarehouse' ? 'Click on map to set Warehouse location' :
                'Review points and click Confirm Add'}
@@ -303,11 +398,31 @@ function App() {
           setDeliveryDuration={setDeliveryDuration}
           onSetWarehouse={handleSetWarehouse}
           isSettingWarehouse={clickMode === 'setWarehouse'}
+          onStartCollectNodes={handleStartCollectNodes}
+          onStopCollectNodes={handleStopCollectNodes}
+          onSaveClickedNodes={handleSaveClickedNodes}
+          onClearClickedNodes={handleClearClickedNodes}
+          isCollectingNodes={clickMode === 'collectNodes'}
+          clickedNodesCount={clickedNodes.length}
         />
         
         <div className="info-panel">
           <h3>Current Delivery Points</h3>
           <div className="delivery-list">
+            {/* Display clicked nodes */}
+            {clickedNodes.length > 0 && (
+              <div className="delivery-group">
+                <h4>Clicked Nodes ({clickedNodes.length})</h4>
+                <ul>
+                  {clickedNodes.map((node, i) => (
+                    <li key={`clicked-${i}`}>
+                      {i === 0 ? '🏭 Warehouse' : (i % 2 === 1 ? '📦 Pickup' : '🏠 Delivery')}: {node.id}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             {/* Display Warehouse */}
             {deliveryRequest && deliveryRequest.warehouse && (
               <div className="delivery-group">
