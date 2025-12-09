@@ -44,3 +44,8 @@ export interface CustomStop {
   type: StopType;
   duration?: number;
 }
+
+export interface TspPath {
+  nodeIds: string[];
+}
+

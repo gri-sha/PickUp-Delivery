@@ -176,3 +176,34 @@ input[type="number"] {
   padding: 5px;
   width: 80px;
 }
+
+/* TSP Path with animated arrows */
+.tsp-path-with-arrows {
+  stroke-dasharray: 0;
+}
+
+/* Arrow markers */
+.arrow-marker {
+  background: transparent !important;
+  border: none !important;
+  animation: pulse-arrow 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-arrow {
+  0%, 100% {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}
+
+/* Number markers */
+.number-marker {
+  background: transparent !important;
+  border: none !important;
+  z-index: 1000 !important;
+}
+

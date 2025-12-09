@@ -10,7 +10,6 @@ interface ControlPanelProps {
   onConfirmAdd: () => void;
   onLocateUser: () => void;
   onSaveRequest: () => void;
-  onSendRequest: () => void;
   deliveryCreationStep: "idle" | "select-pickup" | "select-delivery" | "review";
   pickupDuration: number | string;
   setPickupDuration: (duration: number | string) => void;
@@ -24,6 +23,7 @@ interface ControlPanelProps {
   onClearClickedNodes: () => void;
   isCollectingNodes: boolean;
   clickedNodesCount: number;
+  onComputeTsp: () => void;
 }
 
 export default function ControlPanel({
@@ -35,7 +35,6 @@ export default function ControlPanel({
   onConfirmAdd,
   onLocateUser,
   onSaveRequest,
-  onSendRequest,
   deliveryCreationStep,
   pickupDuration,
   setPickupDuration,
@@ -49,6 +48,7 @@ export default function ControlPanel({
   onClearClickedNodes,
   isCollectingNodes,
   clickedNodesCount,
+  onComputeTsp,
 }: ControlPanelProps) {
   const [MAP_FILES, setMapFiles] = useState<string[]>([]);
   const [REQUEST_FILES, setRequestFiles] = useState<string[]>([]);
@@ -371,7 +371,7 @@ export default function ControlPanel({
           <button onClick={onSaveRequest} style={{ flex: 1 }}>
             Save Request
           </button>
-          <button onClick={onSendRequest} style={{ flex: 1 }}>
+          <button onClick={onComputeTsp} style={{ flex: 1 }}>
             Calculate TSP
           </button>
         </div>

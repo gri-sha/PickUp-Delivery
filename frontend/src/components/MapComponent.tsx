@@ -1,9 +1,9 @@
 import { useEffect } from 'react';
-import { MapContainer, TileLayer, Polyline, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Polyline, Marker, Popup, useMap, useMapEvents, CircleMarker } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { Warehouse, Package, MapPin, User } from 'lucide-react';
+import { Warehouse, Package, MapPin, User, ArrowRight } from 'lucide-react';
 import type { MapData, DeliveryRequest, CustomStop } from '../types';
 
 // Helper to create DivIcon from Lucide component
@@ -40,6 +40,7 @@ interface MapComponentProps {
   userLocation: { lat: number; lng: number } | null;
   customStops: CustomStop[];
   onMapClick: (lat: number, lng: number) => void;
+  tspPath: string[];
 }
 
 function MapController({ bounds }: { bounds: [number, number][] }) {
@@ -66,7 +67,8 @@ const MapComponent: React.FC<MapComponentProps> = ({
   deliveryRequest, 
   userLocation, 
   onMapClick,
-  customStops 
+  customStops,
+  tspPath
 }) => {
   const center: [number, number] = [45.75, 4.85]; // Default Lyon
 
@@ -159,6 +161,104 @@ const MapComponent: React.FC<MapComponentProps> = ({
         <Marker position={[userLocation.lat, userLocation.lng]} icon={userIcon}>
           <Popup>Your Location</Popup>
         </Marker>
+      )}
+
+      {/* TSP Path with arrows */}
+      {tspPath.length > 0 && mapData && (
+        <>
+          <Polyline
+            positions={tspPath
+              .map(nodeId => mapData.nodes.get(nodeId))
+              .filter(node => node !== undefined)
+              .map(node => [node!.latitude, node!.longitude] as [number, number])
+            }
+            color="#ef4444"
+            weight={5}
+            opacity={0.9}
+            pathOptions={{
+              className: 'tsp-path-with-arrows'
+            }}
+          >
+            <Popup>
+              <div>
+                <strong>TSP Route</strong><br/>
+                Total stops: {tspPath.length}
+              </div>
+            </Popup>
+          </Polyline>
+
+          {/* Direction arrows along the path */}
+          {tspPath.slice(0, -1).map((nodeId, idx) => {
+            const currentNode = mapData.nodes.get(nodeId);
+            const nextNode = mapData.nodes.get(tspPath[idx + 1]);
+
+            if (!currentNode || !nextNode) return null;
+
+            // Calculate midpoint for arrow placement
+            const midLat = (currentNode.latitude + nextNode.latitude) / 2;
+            const midLng = (currentNode.longitude + nextNode.longitude) / 2;
+
+            // Calculate angle for arrow rotation
+            const angle = Math.atan2(
+              nextNode.latitude - currentNode.latitude,
+              nextNode.longitude - currentNode.longitude
+            ) * (180 / Math.PI);
+
+            const arrowIcon = L.divIcon({
+              html: `<div style="transform: rotate(${angle + 90}deg); color: #ef4444; font-size: 24px;">▶</div>`,
+              className: 'arrow-marker',
+              iconSize: [20, 20],
+              iconAnchor: [10, 10]
+            });
+
+            return (
+              <Marker
+                key={`arrow-${idx}`}
+                position={[midLat, midLng]}
+                icon={arrowIcon}
+              />
+            );
+          })}
+
+          {/* Numbered markers at each stop */}
+          {tspPath.map((nodeId, idx) => {
+            const node = mapData.nodes.get(nodeId);
+            if (!node) return null;
+
+            const numberIcon = L.divIcon({
+              html: `<div style="
+                background: #ef4444;
+                color: white;
+                border: 3px solid #1f2937;
+                border-radius: 50%;
+                width: 28px;
+                height: 28px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: bold;
+                font-size: 14px;
+                box-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+              ">${idx + 1}</div>`,
+              className: 'number-marker',
+              iconSize: [28, 28],
+              iconAnchor: [14, 14]
+            });
+
+            return (
+              <Marker
+                key={`number-${idx}`}
+                position={[node.latitude, node.longitude]}
+                icon={numberIcon}
+              >
+                <Popup>
+                  <strong>Stop {idx + 1}</strong><br/>
+                  Node ID: {nodeId}
+                </Popup>
+              </Marker>
+            );
+          })}
+        </>
       )}
 
       <MapClickHandler onClick={onMapClick} />
