@@ -13,13 +13,16 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
+import java.nio.file.StandardCopyOption;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController  //telling java that this class is used for internet and requests trafic
 @CrossOrigin(origins = "http://localhost:5173")
@@ -34,8 +37,8 @@ public class ApiController {
 
     @GetMapping("/") //if a request goes to the root of our web site, it will be called (argument "/")
     public void index() throws Exception {
-        controller.createPlan("grandPlan.xml");
-        controller.createDeliveryFromXml("demandeGrand7.xml");
+        controller.createPlan("petitPlan.xml");
+        controller.createDeliveryFromXml("demandePetit1.xml");
         controller.computeShortestPaths();
         controller.findBestPath();
         var tournee = controller.findBestPath();
@@ -54,23 +57,8 @@ public class ApiController {
         return ;
     }
 
-    @GetMapping("/get-tsp")
-    public List<Long> getTsp() throws Exception {
-        controller.createPlan("petitPlan.xml");
-        controller.createDeliveryFromXml("demandePetit2.xml");
-        controller.computeShortestPaths();
-        controller.printMatriceChemins();
-        controller.findBestPath();
-        return controller.buildFullPath();
-        //Tournee tournee = controller.findBestPath();
-
-        //return tournee;
-    }
-
-
-
-
-    @GetMapping("/plan-names")
+    
+   @GetMapping("/plan-names")
 public String[] getPlanNames() throws IOException {
     System.err.println("Getting plan names");
 
