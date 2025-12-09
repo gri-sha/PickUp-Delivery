@@ -16,6 +16,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -55,6 +56,22 @@ public class ApiController {
 
 
         return ;
+    }
+
+    @GetMapping("/get-tsp") //if a request goes to the root of our web site, it will be called (argument "/")
+    public List<Long> getTsp() throws Exception {
+        controller.createPlan("petitPlan.xml");
+        controller.createDeliveryFromXml("demandePetit1.xml");
+        controller.computeShortestPaths();
+        controller.findBestPath();
+        controller.findBestPath();
+
+        return controller.buildFullPath();
+
+
+
+
+
     }
 
     
