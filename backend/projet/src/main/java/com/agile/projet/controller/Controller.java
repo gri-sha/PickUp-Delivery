@@ -1,80 +1,121 @@
 package com.agile.projet.controller;
 
-import com.agile.projet.model.DemandeDelivery;
-import com.agile.projet.model.Entrepot;
 import com.agile.projet.model.PickupDeliveryModel;
-import com.agile.projet.utils.CalculPlusCoursChemins;
-import com.agile.projet.model.Plan;
+import com.agile.projet.model.Tournee;
 import com.agile.projet.utils.CalculPlusCoursChemins;
 import com.agile.projet.utils.CalculTSP;
+import com.agile.projet.utils.MatriceCout;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
+
 @Component
 public class Controller {
-    private PickupDeliveryModel pickupDeliveryModel = new PickupDeliveryModel();
+    private final PickupDeliveryModel pickupDeliveryModel = new PickupDeliveryModel();
 
-    public Controller() throws Exception {
+    public Controller() throws Exception { }
 
-    }
-
-    public void createPlan(String planXml)
-    {
+    public void createPlan(String planXml) {
         pickupDeliveryModel.createPlan(planXml);
         pickupDeliveryModel.plan.printNoeuds();
         pickupDeliveryModel.plan.printTroncons();
-
-
     }
 
+    public void computeShortestPaths() {
+        if (pickupDeliveryModel.plan == null) {
+            throw new IllegalStateException("Plan manquant : appelez createPlan(...) d'abord.");
+        }
+        if (pickupDeliveryModel.demandeDelivery == null) {
+            throw new IllegalStateException("DemandeDelivery manquante : appelez createDeliveryFromXml(...) d'abord.");
+        }
 
-    public void computeShortestPaths(){
         CalculPlusCoursChemins calculPlusCoursChemins = new CalculPlusCoursChemins();
-        //calculPlusCoursChemins.compute(pickupDeliveryModel.plan, pickupDeliveryModel.demandeDelivery);
-        calculPlusCoursChemins.computeAstar(pickupDeliveryModel.plan, pickupDeliveryModel.demandeDelivery);
+        // Cette méthode doit remplir : model.setVertexOrder(...); model.setMatriceCout(...);
+        calculPlusCoursChemins.computeAstar(
+                pickupDeliveryModel.plan,
+                pickupDeliveryModel.demandeDelivery,
+                pickupDeliveryModel
+        );
     }
+
     public void createDeliveryFromXml(String deliveryPlanXml) throws Exception {
         pickupDeliveryModel.createDelivery(deliveryPlanXml);
         pickupDeliveryModel.demandeDelivery.printDeliveries();
     }
 
-
-    public BestPathResult findBestPath(double[][] costMatrix) {
-        if (costMatrix == null) throw new IllegalArgumentException("costMatrix null");
-
+    public Tournee findBestPath() {
         var entrepot = pickupDeliveryModel.getEntrepot();
-        if (entrepot == null) throw new IllegalStateException("Entrepôt manquant dans le modèle");
+        if (entrepot == null) throw new IllegalStateException("Entrepôt manquant dans le modèle.");
+
+        MatriceCout mc = pickupDeliveryModel.getMatriceCout();
+        if (mc == null) {
+            throw new IllegalStateException("matriceCout manquante : appelez computeShortestPaths() d'abord.");
+        }
+        double[][] costMatrix = mc.getCostMatrix();
 
         List<Long> vertexOrder = pickupDeliveryModel.getVertexOrder();
-        if (vertexOrder == null) throw new IllegalStateException("vertexOrder manquant dans le modèle");
+        if (vertexOrder == null) throw new IllegalStateException("vertexOrder manquant dans le modèle.");
         if (vertexOrder.size() != costMatrix.length)
             throw new IllegalStateException("vertexOrder.size != costMatrix.length");
 
-        // Le solver construit sa map ID->index depuis vertexOrder
-        CalculTSP tsp = new CalculTSP(costMatrix, vertexOrder);
-
         long depotId = entrepot.getAdresse();
+        if (!vertexOrder.contains(depotId)) {
+            throw new IllegalStateException("L'ID de l'entrepôt (" + depotId + ") n'est pas présent dans vertexOrder. " +
+                    "Assure-toi que computeAstar ajoute l'entrepôt aux points d'intérêt.");
+        }
+
+        CalculTSP tsp = new CalculTSP(costMatrix, vertexOrder);
         tsp.solveFromId(depotId);
 
         double bestCost = tsp.getBestCost();
-        List<Long> bestPathIds = tsp.getBestPathIds();
+        List<Integer> bestPathIds = tsp.getBestPathIndices();
 
-        return new BestPathResult(bestCost, bestPathIds);
+        List<Integer> closed = new java.util.ArrayList<>(bestPathIds);
+        if (!closed.isEmpty()) closed.add(closed.get(0));
+
+        // construire les étapes (type/label + coût par tronçon et cumul)
+        java.util.List<Tournee.Etape> etapes = new java.util.ArrayList<>();
+        double cumul = 0.0;
+
+        for (int k = 0; k < closed.size(); k++) {
+            int idx = closed.get(k);
+            long id = vertexOrder.get(idx);
+
+            String type = resolveType(id);
+            String label = buildLabel(type, id);
+
+            double leg = 0.0;
+            if (k > 0) {
+                int prevIdx = closed.get(k - 1);
+                leg = costMatrix[prevIdx][idx];
+                cumul += leg;
+            }
+            etapes.add(new Tournee.Etape(id, type, label, leg, cumul));
+        }
+
+        return new Tournee(bestCost, etapes);
     }
 
-    public static class BestPathResult {
-        private final double cost;
-        private final List<Long> pathIds;
+    private String resolveType(long id) {
+        if (pickupDeliveryModel.getEntrepot() != null
+                && pickupDeliveryModel.getEntrepot().getAdresse() == id) {
+            return "DEPOT";
+        }
+        for (var d : pickupDeliveryModel.demandeDelivery.getDeliveries()) {
+            if (d.getAdresseEnlevement() == id) return "PICKUP";
+            if (d.getAdresseLivraison() == id) return "DELIVERY";
+        }
+        return "UNKNOWN";
+    }
 
-        public BestPathResult(double cost, List<Long> pathIds) {
-            this.cost = cost;
-            this.pathIds = pathIds;
-        }
-        public double getCost() { return cost; }
-        public List<Long> getPathIds() { return pathIds; }
-        @Override public String toString() {
-            return "BestPathResult{cost=" + cost + ", pathIds=" + pathIds + "}";
-        }
+    private String buildLabel(String type, long id) {
+        return switch (type) {
+            case "DEPOT" -> "Dépôt";
+            case "PICKUP" -> "Enlèvement " + id;
+            case "DELIVERY" -> "Livraison " + id;
+            default -> "Noeud " + id;
+        };
+
     }
 }

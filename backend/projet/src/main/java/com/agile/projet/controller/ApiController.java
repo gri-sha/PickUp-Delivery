@@ -30,10 +30,20 @@ public class ApiController {
 
     @GetMapping("/") //if a request goes to the root of our web site, it will be called (argument "/")
     public void index() throws Exception {
-        controller.createPlan("grandPlan.xml");
-        controller.createDeliveryFromXml("demandeGrand7.xml");
+        controller.createPlan("petitPlan.xml");
+        controller.createDeliveryFromXml("demandePetit1.xml");
         controller.computeShortestPaths();
+        controller.findBestPath();
+        var tournee = controller.findBestPath();
 
+        // Print lisible en console
+        System.out.println("=== Tournée optimale ===");
+        System.out.println("Coût total : " + tournee.getTotalCost());
+        int i = 1;
+        for (var etape : tournee.getEtapes()) {
+            System.out.printf("%2d. [%s] %-20s  leg=%.2f  cumul=%.2f (id=%d)%n",
+                    i++, etape.getType(), etape.getLabel(), etape.getLegCost(), etape.getCumulativeCost(), etape.getId());
+        }
         System.out.println("Hello World");
 
 
