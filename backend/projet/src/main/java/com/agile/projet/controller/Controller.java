@@ -1,18 +1,19 @@
 package com.agile.projet.controller;
 
+import com.agile.projet.model.Noeud;
 import com.agile.projet.model.PickupDeliveryModel;
 import com.agile.projet.model.Tournee;
-import com.agile.projet.utils.CalculPlusCoursChemins;
-import com.agile.projet.utils.CalculTSP;
-import com.agile.projet.utils.MatriceCout;
+import com.agile.projet.utils.*;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
 
 
 @Component
 public class Controller {
     private final PickupDeliveryModel pickupDeliveryModel = new PickupDeliveryModel();
+    private Tournee tournee;
 
     public Controller() throws Exception { }
 
@@ -21,6 +22,13 @@ public class Controller {
         pickupDeliveryModel.plan.printNoeuds();
         pickupDeliveryModel.plan.printTroncons();
     }
+
+    public void printMatriceChemins() {
+        System.out.println(pickupDeliveryModel.getMatriceChemins().toString());
+    }
+
+
+
 
     public void computeShortestPaths() {
         if (pickupDeliveryModel.plan == null) {
@@ -94,7 +102,46 @@ public class Controller {
             etapes.add(new Tournee.Etape(id, type, label, leg, cumul));
         }
 
+        this.tournee = new Tournee(bestCost, etapes);
         return new Tournee(bestCost, etapes);
+    }
+
+    public void getTrajetAvecTouteEtapes(){
+        MatriceChemins matriceChemins = pickupDeliveryModel.getMatriceChemins();
+
+
+    }
+
+    public List<Long> buildFullPath() {
+        MatriceChemins matrice = pickupDeliveryModel.getMatriceChemins();
+        List<Long> fullPath = new ArrayList<>();
+        tournee.getEtapes().get(0).getId();
+
+        // Ajouter le premier point
+        fullPath.add(tournee.getEtapes().get(0).getId());
+
+        int size = tournee.getEtapes().size();
+        // Pour chaque paire consécutive dans la tournée
+        for (int i = 0; i < size - 1; i++) {
+            Long from = tournee.getEtapes().get(i).getId();
+            Long to = tournee.getEtapes().get(i+1).getId();
+
+            Noeud fromNoeud = pickupDeliveryModel.plan.getNoeud(from);
+            Noeud toNoeud = pickupDeliveryModel.plan.getNoeud(to);
+            NodePair pair = new NodePair(fromNoeud, toNoeud);
+            List<Noeud> partialPath = matrice.getCheminMatrix().get(pair);
+
+            if (partialPath == null) {
+                throw new RuntimeException("Pas de chemin trouvé entre " + from + " et " + to);
+            }
+
+            // Ajouter le chemin sauf le premier élément pour éviter les doublons
+            for (int j = 1; j < partialPath.size(); j++) {
+                fullPath.add(partialPath.get(j).getId());
+            }
+        }
+
+        return fullPath;
     }
 
     private String resolveType(long id) {

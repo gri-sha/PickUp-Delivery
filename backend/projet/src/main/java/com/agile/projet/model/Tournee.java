@@ -1,6 +1,9 @@
 package com.agile.projet.model;
 
+import com.agile.projet.utils.MatriceChemins;
+
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**

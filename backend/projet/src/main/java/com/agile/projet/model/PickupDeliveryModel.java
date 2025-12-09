@@ -1,5 +1,6 @@
 package com.agile.projet.model;
 
+import com.agile.projet.utils.MatriceChemins;
 import com.agile.projet.utils.MatriceCout;
 import com.agile.projet.utils.XmlDeliveryParser;
 import com.agile.projet.utils.XmlPlanParser;
@@ -20,6 +21,14 @@ public class PickupDeliveryModel {
 
     private Entrepot entrepot;
     private MatriceCout matriceCout;
+    private MatriceChemins matriceChemins;
+
+    public void setMatriceChemins(MatriceChemins matriceChemins) {
+        this.matriceChemins = matriceChemins;
+    }
+    public MatriceChemins getMatriceChemins() {
+        return matriceChemins;
+    }
     public MatriceCout getMatriceCout() {
         return matriceCout;
     }

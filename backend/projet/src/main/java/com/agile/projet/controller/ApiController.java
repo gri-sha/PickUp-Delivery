@@ -3,13 +3,17 @@ package com.agile.projet.controller;
 
 
 
+import com.agile.projet.model.Noeud;
 import com.agile.projet.model.PickupDeliveryModel;
+import com.agile.projet.model.Tournee;
 import com.agile.projet.utils.XmlPlanParser;
 
+import java.awt.*;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,8 +34,8 @@ public class ApiController {
 
     @GetMapping("/") //if a request goes to the root of our web site, it will be called (argument "/")
     public void index() throws Exception {
-        controller.createPlan("petitPlan.xml");
-        controller.createDeliveryFromXml("demandePetit1.xml");
+        controller.createPlan("grandPlan.xml");
+        controller.createDeliveryFromXml("demandeGrand7.xml");
         controller.computeShortestPaths();
         controller.findBestPath();
         var tournee = controller.findBestPath();
@@ -50,8 +54,23 @@ public class ApiController {
         return ;
     }
 
-    
-   @GetMapping("/plan-names")
+    @GetMapping("/get-tsp")
+    public List<Long> getTsp() throws Exception {
+        controller.createPlan("petitPlan.xml");
+        controller.createDeliveryFromXml("demandePetit2.xml");
+        controller.computeShortestPaths();
+        controller.printMatriceChemins();
+        controller.findBestPath();
+        return controller.buildFullPath();
+        //Tournee tournee = controller.findBestPath();
+
+        //return tournee;
+    }
+
+
+
+
+    @GetMapping("/plan-names")
 public String[] getPlanNames() throws IOException {
     System.err.println("Getting plan names");
 

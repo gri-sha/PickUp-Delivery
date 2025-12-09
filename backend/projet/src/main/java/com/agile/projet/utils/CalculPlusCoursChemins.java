@@ -40,6 +40,7 @@ public class CalculPlusCoursChemins {
 
     public void computeAstar(Plan plan, DemandeDelivery demandeDelivery, PickupDeliveryModel model){
         Graph<Noeud, DefaultWeightedEdge> graph = new DefaultDirectedWeightedGraph<>(DefaultWeightedEdge.class);
+        MatriceChemins matriceChemins = new MatriceChemins();
 
         // 1) Graphe réel (poids = longueur)
         List<Troncon> troncons = plan.getVraiTroncons();
@@ -98,12 +99,18 @@ public class CalculPlusCoursChemins {
                 Noeud to = points.get(j);
                 GraphPath<Noeud, DefaultWeightedEdge> path = astar.getPath(from, to);
                 costMatrix[i][j] = (path == null) ? Double.POSITIVE_INFINITY : path.getWeight();
+                double cost = path.getWeight();
+                NodePair pair = new NodePair(from, to);
+
+                matriceChemins.put(pair,path.getVertexList());
+                System.out.println(from +  "->" + to + " = " + cost);
             }
         }
 
         // 5) Stockage dans le modèle (vertexOrder vit dans le modèle, MatriceCout = matrice seule)
         model.setVertexOrder(vertexOrder);
         model.setMatriceCout(new MatriceCout(costMatrix));
+        model.setMatriceChemins(matriceChemins);
     }
 
 
