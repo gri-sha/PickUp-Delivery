@@ -113,7 +113,8 @@ public class Controller {
             total += costMatrix[closed.get(i-1)][closed.get(i)];
         }
 
-        return new Tournee(total, etapes);
+        this.tournee = new Tournee(total, etapes);
+        return this.tournee;
     }
     /**
      * Répare la séquence d’indices pour imposer "pickup -> delivery".

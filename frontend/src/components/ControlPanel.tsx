@@ -56,6 +56,39 @@ export default function ControlPanel({
   const [selectedMap, setSelectedMap] = useState<string>("");
   const [selectedRequest, setSelectedRequest] = useState<string>("");
 
+  const [planFile, setPlanFile] = useState<File | null>(null);
+  const [requestFile, setRequestFile] = useState<File | null>(null);
+
+  const uploadXmlAndComputeTsp = async () => {
+    if (!planFile || !requestFile) {
+      alert("Please select both Plan XML and Request XML files.");
+      return;
+    }
+    try {
+      const form = new FormData();
+      console.log("Preparing files for upload:", planFile, requestFile);
+      form.append("plan", planFile);
+      form.append("request", requestFile);
+      for (let pair of form.entries()) {
+        console.log(pair[0], pair[1]); // pair[0] = nom du champ, pair[1] = fichier
+      }
+      const resp = await fetch("http://localhost:8080/get-tsp", {
+        method: "POST",
+        body: form,
+      });
+      if (!resp.ok) {
+        const text = await resp.text();
+        throw new Error(text || `HTTP ${resp.status}`);
+      }
+      const pathIds: number[] = await resp.json();
+      console.log("Computed TSP path ids:", pathIds);
+      alert(`TSP computed. Path length: ${pathIds.length}`);
+    } catch (e: any) {
+      console.error("Upload/Compute TSP failed", e);
+      alert(`Upload/Compute failed: ${e.message}`);
+    }
+  };
+
   const handleMapSelect = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const filename = e.target.value;
     setSelectedMap(filename);
@@ -134,10 +167,28 @@ export default function ControlPanel({
         </div>
 
         <div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "5px" }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "5px",
+            }}
+          >
             <label>Select Map:</label>
-            <button onClick={fetchMapFiles} style={{ padding: "4px 8px", fontSize: "0.8rem", display: "flex", alignItems: "center", gap: "4px", cursor: "pointer" }} title="Refresh Map List">
-               <RefreshCw size={12} />
+            <button
+              onClick={fetchMapFiles}
+              style={{
+                padding: "4px 8px",
+                fontSize: "0.8rem",
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+                cursor: "pointer",
+              }}
+              title="Refresh Map List"
+            >
+              <RefreshCw size={12} />
             </button>
           </div>
           <select
@@ -159,10 +210,28 @@ export default function ControlPanel({
         </div>
 
         <div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "5px" }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "5px",
+            }}
+          >
             <label>Select Delivery Request:</label>
-            <button onClick={fetchRequestFiles} style={{ padding: "4px 8px", fontSize: "0.8rem", display: "flex", alignItems: "center", gap: "4px", cursor: "pointer" }} title="Refresh Request List">
-               <RefreshCw size={12} />
+            <button
+              onClick={fetchRequestFiles}
+              style={{
+                padding: "4px 8px",
+                fontSize: "0.8rem",
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+                cursor: "pointer",
+              }}
+              title="Refresh Request List"
+            >
+              <RefreshCw size={12} />
             </button>
           </div>
           <select
@@ -181,6 +250,41 @@ export default function ControlPanel({
               </option>
             ))}
           </select>
+        </div>
+
+        {/* Local XML upload to compute TSP on backend */}
+        <div
+          style={{
+            border: "2px solid #1f2937",
+            padding: "8px",
+            marginTop: "10px",
+          }}
+        >
+          <h4 style={{ marginTop: 0 }}>Upload XMLs (Plan + Request)</h4>
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+            <div>
+              <label style={{ fontSize: "0.8rem" }}>Plan XML:</label>
+              <input
+                type="file"
+                accept=".xml"
+                onChange={(e) => setPlanFile(e.target.files?.[0] || null)}
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: "0.8rem" }}>Request XML:</label>
+              <input
+                type="file"
+                accept=".xml"
+                onChange={(e) => setRequestFile(e.target.files?.[0] || null)}
+              />
+            </div>
+            <button
+              onClick={uploadXmlAndComputeTsp}
+              disabled={!planFile || !requestFile}
+            >
+              Upload & Compute TSP
+            </button>
+          </div>
         </div>
 
         <div>
@@ -213,16 +317,26 @@ export default function ControlPanel({
           </button>
 
           {/* Section Collect Nodes */}
-          <div style={{
-            border: "2px solid #1f2937",
-            padding: "10px",
-            marginBottom: "10px",
-            backgroundColor: isCollectingNodes ? "#fef3c7" : "#f9fafb"
-          }}>
-            <h4 style={{ marginTop: 0, marginBottom: "10px", fontSize: "0.9rem" }}>
+          <div
+            style={{
+              border: "2px solid #1f2937",
+              padding: "10px",
+              marginBottom: "10px",
+              backgroundColor: isCollectingNodes ? "#fef3c7" : "#f9fafb",
+            }}
+          >
+            <h4
+              style={{ marginTop: 0, marginBottom: "10px", fontSize: "0.9rem" }}
+            >
               Click & Collect Nodes
             </h4>
-            <p style={{ fontSize: "0.75rem", color: "#6b7280", marginBottom: "10px" }}>
+            <p
+              style={{
+                fontSize: "0.75rem",
+                color: "#6b7280",
+                marginBottom: "10px",
+              }}
+            >
               {isCollectingNodes
                 ? `Collected: ${clickedNodesCount} nodes (1st=warehouse, then pairs)`
                 : "Click nodes on map to create delivery request"}
@@ -252,7 +366,7 @@ export default function ControlPanel({
                   flex: 1,
                   fontSize: "0.8rem",
                   opacity: clickedNodesCount === 0 ? 0.5 : 1,
-                  cursor: clickedNodesCount === 0 ? "not-allowed" : "pointer"
+                  cursor: clickedNodesCount === 0 ? "not-allowed" : "pointer",
                 }}
               >
                 Clear
@@ -263,9 +377,10 @@ export default function ControlPanel({
                 style={{
                   flex: 1,
                   fontSize: "0.8rem",
-                  backgroundColor: clickedNodesCount > 0 ? "#93c5fd" : "#e5e7eb",
+                  backgroundColor:
+                    clickedNodesCount > 0 ? "#93c5fd" : "#e5e7eb",
                   opacity: clickedNodesCount === 0 ? 0.5 : 1,
-                  cursor: clickedNodesCount === 0 ? "not-allowed" : "pointer"
+                  cursor: clickedNodesCount === 0 ? "not-allowed" : "pointer",
                 }}
               >
                 Save as XML
@@ -293,7 +408,9 @@ export default function ControlPanel({
                 (deliveryCreationStep === "review" &&
                   (pickupDuration === "" || deliveryDuration === ""))
                   ? "#e5e7eb"
-                  : deliveryCreationStep === "review" ? "#86efac" : "#ffffff",
+                  : deliveryCreationStep === "review"
+                  ? "#86efac"
+                  : "#ffffff",
               cursor:
                 deliveryCreationStep === "select-pickup" ||
                 deliveryCreationStep === "select-delivery" ||
