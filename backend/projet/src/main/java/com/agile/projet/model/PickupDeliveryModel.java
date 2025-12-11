@@ -6,6 +6,7 @@ import com.agile.projet.utils.XmlDeliveryParser;
 import com.agile.projet.utils.XmlPlanParser;
 
 import java.util.List;
+import java.util.Map;
 
 public class PickupDeliveryModel {
     public Plan plan;
@@ -67,7 +68,7 @@ Traduire indices ⇄ IDs
 
 La matrice cost[i][j] ne connaît que des indices 0..n-1.
 
-Ton domaine (XML, entrepôt, livraisons) manipule des IDs (Long).
+Le domaine (XML, entrepôt, livraisons) manipule des IDs (Long).
 
 vertexOrder.get(i) te dit quel ID correspond à l’index i (et inversement tu peux faire indexOf(id) pour retrouver l’index).
 
@@ -83,6 +84,28 @@ Le solver TSP démarre en indices, donc il a besoin de cette conversion. */
 
     public List<Long> getVertexOrder() { return vertexOrder; }
     public void setVertexOrder(List<Long> vertexOrder) { this.vertexOrder = vertexOrder; }
+    // PickupDeliveryModel.java
+    private Map<Long, Long> pickupToDelivery;   // idPickup -> idDelivery
+    private Map<Long, Long> deliveryToPickup;   // idDelivery -> idPickup
+    private int[] pickupOfDelivery;             // indexDelivery -> indexPickup (sinon -1)
+
+    public Map<Long, Long> getPickupToDelivery() { return pickupToDelivery; }
+    public void setPickupToDelivery(Map<Long, Long> m) { this.pickupToDelivery = m; }
+
+    public Map<Long, Long> getDeliveryToPickup() { return deliveryToPickup; }
+    public void setDeliveryToPickup(Map<Long, Long> m) { this.deliveryToPickup = m; }
+
+    public int[] getPickupOfDelivery() { return pickupOfDelivery; }
+    public void setPickupOfDelivery(int[] arr) { this.pickupOfDelivery = arr; }
+
+    // Helpers pratiques
+    public boolean isPickup(long id)   { return pickupToDelivery != null && pickupToDelivery.containsKey(id); }
+    public boolean isDelivery(long id) { return deliveryToPickup != null && deliveryToPickup.containsKey(id); }
+    public Long counterpart(long id) {
+        if (isPickup(id))   return pickupToDelivery.get(id);
+        if (isDelivery(id)) return deliveryToPickup.get(id);
+        return null;
+    }
 
 
 }

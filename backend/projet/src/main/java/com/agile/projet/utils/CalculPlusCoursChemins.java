@@ -106,10 +106,37 @@ public class CalculPlusCoursChemins {
                 System.out.println(from +  "->" + to + " = " + cost);
             }
         }
+        java.util.Map<Long, Long> p2d = new java.util.HashMap<>();
+        java.util.Map<Long, Long> d2p = new java.util.HashMap<>();
+        for (Delivery d : demandeDelivery.getDeliveries()) {
+            p2d.put(d.getAdresseEnlevement(), d.getAdresseLivraison());
+            d2p.put(d.getAdresseLivraison(), d.getAdresseEnlevement());
+        }
+        model.setPickupToDelivery(p2d);
+        model.setDeliveryToPickup(d2p);
 
+        // ---- Construire pickupOfDelivery en INDICES (indexDelivery -> indexPickup) ----
+        int[] pickupOfDelivery = new int[n];
+        java.util.Arrays.fill(pickupOfDelivery, -1);
+
+        // ID -> index
+        java.util.Map<Long, Integer> idToIdx = new java.util.HashMap<>();
+        for (int i = 0; i < n; i++) idToIdx.put(vertexOrder.get(i), i);
+
+        // Pour chaque paire (pickupID -> deliveryID), poser la contrainte en indices
+        for (var e : p2d.entrySet()) {
+            Long idP = e.getKey();
+            Long idD = e.getValue();
+            Integer iP = idToIdx.get(idP);
+            Integer iD = idToIdx.get(idD);
+            if (iP != null && iD != null) {
+                pickupOfDelivery[iD] = iP; // la livraison à iD exige d’avoir visité iP
+            }
+        }
         // 5) Stockage dans le modèle (vertexOrder vit dans le modèle, MatriceCout = matrice seule)
         model.setVertexOrder(vertexOrder);
         model.setMatriceCout(new MatriceCout(costMatrix));
+        model.setPickupOfDelivery(pickupOfDelivery);
         model.setMatriceChemins(matriceChemins);
     }
 
