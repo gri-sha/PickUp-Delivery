@@ -114,7 +114,8 @@ public class Controller {
         }
 
         this.tournee = new Tournee(total, etapes);
-        return this.tournee;
+
+        return new Tournee(total, etapes);
     }
     /**
      * Répare la séquence d’indices pour imposer "pickup -> delivery".
@@ -225,5 +226,18 @@ public class Controller {
             default -> "Noeud " + id;
         };
 
+    }
+
+    public void solveTwoDriverTspExample() {
+        double speed = 15000.0 / 3600.0;
+        double maxDurationSec = 6000.0; // 1 heure
+
+        TwoDriverTspSolver.TwoDriverSolution sol = TwoDriverTspSolver.solveForTwoDrivers(pickupDeliveryModel, maxDurationSec, speed);
+        List<Long> driver1Route = sol.getDriver1PathIds();
+        List<Long> driver2Route = sol.getDriver2PathIds();
+        System.out.println("Driver 1 route: " + driver1Route);
+        System.out.println("Driver 2 route: " + driver2Route);
+        double t1Sec = sol.getDriver1DurationSeconds();
+        double t2Sec = sol.getDriver2DurationSeconds();
     }
 }

@@ -110,6 +110,26 @@ public class ApiController {
         }
     }
 
+    @GetMapping("/get-tsp2") //if a request goes to the root of our web site, it will be called (argument "/")
+    public /*List<Long>*/ void getTsp() throws Exception {
+        controller.createPlan("grandPlan.xml");
+        controller.createDeliveryFromXml("demandeGrand7.xml");
+        controller.computeShortestPaths();
+        //controller.findBestPath();
+
+
+        controller.solveTwoDriverTspExample();
+
+        //return controller.buildFullPath();
+
+
+
+        return;
+
+    }
+
+
+
     @GetMapping("/plan-names")
     public String[] getPlanNames() throws IOException {
     Path plansDir = Paths.get("src/main/resources/plans");
