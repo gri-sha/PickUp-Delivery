@@ -3,7 +3,7 @@ import './App.css';
 const MapComponent = lazy(() => import('./components/MapComponent'));
 import ControlPanel from './components/ControlPanel';
 import { parseMapXML, parseDeliveryXML, findNearestNode, generateDeliveryXML } from './utils/xmlParser';
-import type { MapData, DeliveryRequest, CustomStop, Node } from './types';
+import type { MapData, DeliveryRequest, CustomStop, Node, TspPath } from './types';
 
 type ClickMode = 'default' | 'setUserLocation' | 'selectPickup' | 'selectDelivery' | 'reviewNewDelivery' | 'setWarehouse' | 'collectNodes';
 
@@ -14,6 +14,7 @@ function App() {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [clickMode, setClickMode] = useState<ClickMode>('default');
   const [clickedNodes, setClickedNodes] = useState<Node[]>([]);
+  const [tspPath, setTspPath] = useState<string[]>([]);
 
   // New state for delivery creation
   const [customStops, setCustomStops] = useState<CustomStop[]>([]);
@@ -291,6 +292,22 @@ function App() {
     alert("Request sent to server!");
   };
 
+  const handleComputeTsp = async () => {
+    try {
+      const response = await fetch("http://localhost:8080/get-tsp");
+      if (!response.ok) {
+        throw new Error("Failed to fetch TSP");
+      }
+      const nodeIds: number[] = await response.json();
+      const nodeIdsStr = nodeIds.map(id => id.toString());
+      setTspPath(nodeIdsStr);
+      alert("TSP computed successfully!");
+    } catch (error) {
+      console.error("Error computing TSP:", error);
+      alert("Failed to compute TSP");
+    }
+  };
+
   const handleDeleteLoadedDelivery = (index: number) => {
     if (deliveryRequest) {
       const updatedDeliveries = [...deliveryRequest.deliveries];
@@ -362,6 +379,7 @@ function App() {
               userLocation={userLocation}
               customStops={displayStops}
               onMapClick={handleMapClick}
+              tspPath={tspPath}
             />
           </Suspense>
           {clickMode !== 'default' && (
@@ -390,7 +408,6 @@ function App() {
           onConfirmAdd={handleConfirmAdd}
           onLocateUser={handleLocateUser}
           onSaveRequest={handleSaveRequest}
-          onSendRequest={handleSendRequest}
           deliveryCreationStep={getDeliveryCreationStep()}
           pickupDuration={pickupDuration}
           setPickupDuration={setPickupDuration}
@@ -404,6 +421,7 @@ function App() {
           onClearClickedNodes={handleClearClickedNodes}
           isCollectingNodes={clickMode === 'collectNodes'}
           clickedNodesCount={clickedNodes.length}
+          onComputeTsp={handleComputeTsp}
         />
         
         <div className="info-panel">
