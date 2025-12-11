@@ -15,7 +15,8 @@ public class Controller {
     private final PickupDeliveryModel pickupDeliveryModel = new PickupDeliveryModel();
     private Tournee tournee;
 
-    public Controller() throws Exception { }
+    public Controller() throws Exception {
+    }
 
     public void createPlan(String planXml) {
         pickupDeliveryModel.createPlan(planXml);
@@ -26,8 +27,6 @@ public class Controller {
     public void printMatriceChemins() {
         System.out.println(pickupDeliveryModel.getMatriceChemins().toString());
     }
-
-
 
 
     public void computeShortestPaths() {
@@ -57,7 +56,8 @@ public class Controller {
         if (entrepot == null) throw new IllegalStateException("Entrepôt manquant dans le modèle.");
 
         var mc = pickupDeliveryModel.getMatriceCout();
-        if (mc == null) throw new IllegalStateException("matriceCout manquante : appelez computeShortestPaths() d'abord.");
+        if (mc == null)
+            throw new IllegalStateException("matriceCout manquante : appelez computeShortestPaths() d'abord.");
         double[][] costMatrix = mc.getCostMatrix();
 
         List<Long> vertexOrder = pickupDeliveryModel.getVertexOrder();
@@ -119,7 +119,7 @@ public class Controller {
     }
 
 
-    public void getTrajetAvecTouteEtapes(){
+    public void getTrajetAvecTouteEtapes() {
         MatriceChemins matriceChemins = pickupDeliveryModel.getMatriceChemins();
 
 
@@ -137,7 +137,40 @@ public class Controller {
         // Pour chaque paire consécutive dans la tournée
         for (int i = 0; i < size - 1; i++) {
             Long from = tournee.getEtapes().get(i).getId();
-            Long to = tournee.getEtapes().get(i+1).getId();
+            Long to = tournee.getEtapes().get(i + 1).getId();
+
+            Noeud fromNoeud = pickupDeliveryModel.plan.getNoeud(from);
+            Noeud toNoeud = pickupDeliveryModel.plan.getNoeud(to);
+            NodePair pair = new NodePair(fromNoeud, toNoeud);
+            List<Noeud> partialPath = matrice.getCheminMatrix().get(pair);
+
+            if (partialPath == null) {
+                throw new RuntimeException("Pas de chemin trouvé entre " + from + " et " + to);
+            }
+
+            // Ajouter le chemin sauf le premier élément pour éviter les doublons
+            for (int j = 1; j < partialPath.size(); j++) {
+                fullPath.add(partialPath.get(j).getId());
+            }
+        }
+
+        return fullPath;
+    }
+
+
+    public List<Long> buildFullPathArgument(Tournee tournee) {
+        MatriceChemins matrice = pickupDeliveryModel.getMatriceChemins();
+        List<Long> fullPath = new ArrayList<>();
+        tournee.getEtapes().get(0).getId();
+
+        // Ajouter le premier point
+        fullPath.add(tournee.getEtapes().get(0).getId());
+
+        int size = tournee.getEtapes().size();
+        // Pour chaque paire consécutive dans la tournée
+        for (int i = 0; i < size - 1; i++) {
+            Long from = tournee.getEtapes().get(i).getId();
+            Long to = tournee.getEtapes().get(i + 1).getId();
 
             Noeud fromNoeud = pickupDeliveryModel.plan.getNoeud(from);
             Noeud toNoeud = pickupDeliveryModel.plan.getNoeud(to);
@@ -178,4 +211,126 @@ public class Controller {
         };
 
     }
+
+
+    public void solveTwoDriverTspExample() {
+        double speed = 15000.0 / 3600.0;
+        double maxDurationSec = 6000.0; // 1 heure
+
+        TwoDriverTspSolver.TwoDriverSolution sol = TwoDriverTspSolver.solveForTwoDrivers(pickupDeliveryModel, maxDurationSec, speed);
+        List<Long> driver1Route = sol.getDriver1PathIds();
+        List<Long> driver2Route = sol.getDriver2PathIds();
+        System.out.println("Driver 1 route: " + driver1Route);
+        System.out.println("Driver 2 route: " + driver2Route);
+        double t1Sec = sol.getDriver1DurationSeconds();
+        double t2Sec = sol.getDriver2DurationSeconds();
+    }
+
+    public List<Tournee> findBestPathsForTwoDrivers() {
+
+        double speed = 15000.0 / 3600.0;
+        double maxDurationSec = 6000.0; // 1 heure
+
+        TwoDriverTspSolver.TwoDriverSolution sol = TwoDriverTspSolver.solveForTwoDrivers2(pickupDeliveryModel, maxDurationSec, speed);
+
+        List<Long> d1 = sol.getDriver1PathIds();
+        List<Long> d2 = sol.getDriver2PathIds();
+
+        // 2) On convertit ces deux listes en deux Tournee,
+        //    en réutilisant EXACTEMENT la même logique que findBestPath()
+        Tournee t1 = buildTourneeFromIdList(d1);
+        Tournee t2 = buildTourneeFromIdList(d2);
+
+        printTwoDriverTournees(t1, t2);
+
+
+        return List.of(t1, t2);
+    }
+
+    private Tournee buildTourneeFromIdList(List<Long> ids) {
+
+        if (ids == null || ids.isEmpty()) {
+            return new Tournee(0.0, List.of()); // tournée vide
+        }
+
+        var mc = pickupDeliveryModel.getMatriceCout();
+        var costMatrix = mc.getCostMatrix();
+        var vertexOrder = pickupDeliveryModel.getVertexOrder();
+
+        // indices correspondants
+        List<Integer> pathIdx = new ArrayList<>();
+        for (Long id : ids) {
+            int idx = vertexOrder.indexOf(id);
+            if (idx < 0) continue; // sécurité
+            pathIdx.add(idx);
+        }
+
+        // fermer le cycle
+        List<Integer> closed = new ArrayList<>(pathIdx);
+        closed.add(pathIdx.get(0));
+
+        List<Tournee.Etape> etapes = new ArrayList<>();
+        double cumul = 0.0;
+
+        for (int k = 0; k < closed.size(); k++) {
+            int idx = closed.get(k);
+            long id = vertexOrder.get(idx);
+
+            String type = resolveType(id);
+            String label = buildLabel(type, id);
+
+            double leg = 0.0;
+            if (k > 0) {
+                int prev = closed.get(k - 1);
+                leg = costMatrix[prev][idx];
+                cumul += leg;
+            }
+
+            etapes.add(new Tournee.Etape(id, type, label, leg, cumul));
+        }
+
+        // recalcul du coût total
+        double total = 0.0;
+        for (int i = 1; i < closed.size(); i++) {
+            total += costMatrix[closed.get(i - 1)][closed.get(i)];
+        }
+
+        return new Tournee(total, etapes);
+    }
+
+    private void printTwoDriverTournees(Tournee t1, Tournee t2) {
+
+        // ===== DRIVER 1 =====
+        System.out.println("=== Tournée Driver 1 ===");
+        if (t1.getEtapes().isEmpty()) {
+            System.out.println("Aucune étape (tournée vide)");
+        } else {
+            System.out.println("Coût total : " + t1.getTotalCost());
+            int i = 1;
+            for (var etape : t1.getEtapes()) {
+                System.out.printf("%2d. [%s] %-20s  leg=%.2f  cumul=%.2f (id=%d)%n",
+                        i++, etape.getType(), etape.getLabel(),
+                        etape.getLegCost(), etape.getCumulativeCost(), etape.getId());
+            }
+        }
+
+        System.out.println();
+
+        // ===== DRIVER 2 =====
+        System.out.println("=== Tournée Driver 2 ===");
+        if (t2.getEtapes().isEmpty()) {
+            System.out.println("Aucune étape (tournée vide)");
+        } else {
+            System.out.println("Coût total : " + t2.getTotalCost());
+            int j = 1;
+            for (var etape : t2.getEtapes()) {
+                System.out.printf("%2d. [%s] %-20s  leg=%.2f  cumul=%.2f (id=%d)%n",
+                        j++, etape.getType(), etape.getLabel(),
+                        etape.getLegCost(), etape.getCumulativeCost(), etape.getId());
+            }
+        }
+
+        System.out.println("Hello World");
+    }
+
 }
