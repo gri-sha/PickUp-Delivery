@@ -69,7 +69,7 @@ export default function ControlPanel({
       console.log("Preparing files for upload:", planFile, requestFile);
       form.append("plan", planFile);
       form.append("request", requestFile);
-      for (let pair of form.entries()) {
+      for (const pair of form.entries()) {
         console.log(pair[0], pair[1]); // pair[0] = nom du champ, pair[1] = fichier
       }
       const resp = await fetch("http://localhost:8080/get-tsp", {
@@ -83,9 +83,9 @@ export default function ControlPanel({
       const pathIds: number[] = await resp.json();
       console.log("Computed TSP path ids:", pathIds);
       alert(`TSP computed. Path length: ${pathIds.length}`);
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("Upload/Compute TSP failed", e);
-      alert(`Upload/Compute failed: ${e.message}`);
+      alert(`Upload/Compute failed: ${e instanceof Error ? e.message : String(e)}`);
     }
   };
 
