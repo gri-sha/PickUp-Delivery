@@ -72,13 +72,14 @@ public class Controller {
         // >>> NOUVEAU : passer la contrainte pickup->delivery <<<
         int[] pickupOfDelivery = pickupDeliveryModel.getPickupOfDelivery();
         if (pickupOfDelivery == null || pickupOfDelivery.length != costMatrix.length) {
-            throw new IllegalStateException("pickupOfDelivery manquant ou invalide (computeShortestPaths d'abord).");
+            throw new IllegalStateException("pickupOfDelivery manquant ou de taille incorrecte");
         }
 
         CalculTSP tsp = new CalculTSP(costMatrix, vertexOrder, pickupOfDelivery);
         tsp.solveFromId(depotId);
 
         List<Integer> pathIdx = tsp.getBestPathIndices();
+
         if (pathIdx.isEmpty())
             throw new IllegalStateException("Aucune tournée faisable trouvée.");
 
