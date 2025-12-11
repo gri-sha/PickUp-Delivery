@@ -110,20 +110,24 @@ public class ApiController {
     }
 
     @GetMapping("/get-tsp2") //if a request goes to the root of our web site, it will be called (argument "/")
-    public /*List<Long>*/ void getTsp() throws Exception {
-        controller.createPlan("grandPlan.xml");
-        controller.createDeliveryFromXml("demandeGrand7.xml");
+    public List<Long>  getTsp() throws Exception {
+        controller.createPlan("moyenPlan.xml");
+        controller.createDeliveryFromXml("demandeMoyen5.xml");
         controller.computeShortestPaths();
         //controller.findBestPath();
 
 
-        controller.solveTwoDriverTspExample();
+        //controller.solveTwoDriverTspExample();
+        List<Tournee> tournees = controller.findBestPathsForTwoDrivers();
+        List<Long> tournee1 = controller.buildFullPathArgument(tournees.get(0));
+        List<Long> tournee2 = controller.buildFullPathArgument(tournees.get(1));
+        System.out.println("Tournee 1: " + tournee1);
+        System.out.println("Tournee 2: " + tournee2);
 
-        //return controller.buildFullPath();
+        return tournee1;
 
 
 
-        return;
 
     }
 
