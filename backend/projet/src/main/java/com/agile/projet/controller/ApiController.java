@@ -38,8 +38,8 @@ public class ApiController {
 
     @GetMapping("/") //if a request goes to the root of our web site, it will be called (argument "/")
     public void index() throws Exception {
-        controller.createPlan("petitPlan.xml");
-        controller.createDeliveryFromXml("demandePetit1.xml");
+        controller.createPlan("moyenPlan.xml");
+        controller.createDeliveryFromXml("demandeMoyen5.xml");
         controller.computeShortestPaths();
         controller.findBestPath();
         var tournee = controller.findBestPath();

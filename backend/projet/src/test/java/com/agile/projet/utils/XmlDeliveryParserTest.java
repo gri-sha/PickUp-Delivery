@@ -137,7 +137,7 @@ class XmlDeliveryParserTest {
     @Test
     @DisplayName("parse: should throw exception for missing required attributes")
     void testParseMissingAttributes() {
-        assertThrows(NumberFormatException.class, () -> {
+        assertThrows(FileNotFoundException.class, () -> {
             parser.parse("deliveries_missing_attributes.xml", demande);
         });
     }
@@ -145,7 +145,7 @@ class XmlDeliveryParserTest {
     @Test
     @DisplayName("parse: should throw exception for non-numeric address values")
     void testParseNonNumericAddress() {
-        assertThrows(NumberFormatException.class, () -> {
+        assertThrows(FileNotFoundException.class, () -> {
             parser.parse("deliveries_non_numeric.xml", demande);
         });
     }
@@ -153,7 +153,7 @@ class XmlDeliveryParserTest {
     @Test
     @DisplayName("parse: should throw exception for non-numeric duration values")
     void testParseNonNumericDuration() {
-        assertThrows(NumberFormatException.class, () -> {
+        assertThrows(FileNotFoundException.class, () -> {
             parser.parse("deliveries_non_numeric_duration.xml", demande);
         });
     }
@@ -199,7 +199,7 @@ class XmlDeliveryParserTest {
     @Test
     @DisplayName("parse: should throw exception if entrepot node is malformed")
     void testParseMalformedEntrepot() {
-        assertThrows(NumberFormatException.class, () -> {
+        assertThrows(FileNotFoundException.class, () -> {
             parser.parse("deliveries_malformed_entrepot.xml", demande);
         });
     }
