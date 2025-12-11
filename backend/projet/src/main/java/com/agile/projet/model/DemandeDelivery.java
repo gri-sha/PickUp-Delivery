@@ -6,7 +6,7 @@ import java.util.List;
 public class DemandeDelivery {
     private List<Delivery> deliveries = new ArrayList<>();
 
-    DemandeDelivery(){}
+    public DemandeDelivery(){}
 
     public void addDelivery(Delivery d) {
         if (d != null) {

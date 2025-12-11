@@ -8,10 +8,21 @@ public class Plan {
     private List<Troncon> troncons = new ArrayList<>();
     private List<Troncon> vraiTroncons = new ArrayList<>();
 
+    public Plan() {
+        this.noeuds = new HashMap<>();
+        this.troncons = new ArrayList<>();
+        this.vraiTroncons = new ArrayList<>();
+    }
+
+    public Plan(Map<Long, Noeud> noeuds, List<Troncon> troncons, List<Troncon> vraiTroncons) {
+        this.noeuds = noeuds != null ? noeuds : new HashMap<>();
+        this.troncons = troncons != null ? troncons : new ArrayList<>();
+        this.vraiTroncons = vraiTroncons != null ? vraiTroncons : new ArrayList<>();
+    }
+
     public void addNoeud(Noeud n) {
         noeuds.put(n.getId(), n);
     }
-
     public Noeud getNoeud(long id) {
         return noeuds.get(id);
     }

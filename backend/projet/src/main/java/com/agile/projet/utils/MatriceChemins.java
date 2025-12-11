@@ -49,4 +49,7 @@ public class MatriceChemins {
         return sb.toString();
     }
 
+    public List<Noeud> get(NodePair depotPickup) {
+        return shortestPaths.get(depotPickup);
+    }
 }

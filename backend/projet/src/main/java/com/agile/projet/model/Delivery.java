@@ -45,4 +45,11 @@ public class Delivery {
     }
     public void setAdresseLivraison(Long adresseLivraison) {this.adresseLivraison = adresseLivraison;}
 
+    public long getDureeEnlevement() {
+        return dureeEnlevement;
+    }
+
+    public long getDureeLivraison() {
+        return dureeLivraison;
+    }
 }

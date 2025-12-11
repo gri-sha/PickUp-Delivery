@@ -85,7 +85,6 @@ public class CalculPlusCoursChemins {
 
         List<Long> vertexOrder = new ArrayList<>(n);
         for (Noeud nd : points) {
-            // ⚠️ si ton identifiant s’appelle autrement, remplace nd.getId() par nd.getAdresse() ou équivalent
             vertexOrder.add(nd.getId());
         }
 
@@ -99,6 +98,9 @@ public class CalculPlusCoursChemins {
                 Noeud to = points.get(j);
                 GraphPath<Noeud, DefaultWeightedEdge> path = astar.getPath(from, to);
                 costMatrix[i][j] = (path == null) ? Double.POSITIVE_INFINITY : path.getWeight();
+                if(path == null) {
+                    continue;
+                }
                 double cost = path.getWeight();
                 NodePair pair = new NodePair(from, to);
 

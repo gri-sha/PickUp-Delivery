@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root>
+    <entrepot adresse="1" heureDepart="08:00:00"
+    <livraison adresseEnlevement="2" adresseLivraison="3"/>
+</root>
