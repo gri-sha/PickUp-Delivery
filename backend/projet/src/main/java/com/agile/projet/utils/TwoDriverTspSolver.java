@@ -26,6 +26,8 @@ public class TwoDriverTspSolver {
         private final double driver1DurationSeconds;
         private final double driver2DurationSeconds;
 
+
+
         public TwoDriverSolution(List<Long> d1, List<Long> d2,
                                  double t1, double t2) {
             this.driver1PathIds = d1;
@@ -47,9 +49,12 @@ public class TwoDriverTspSolver {
      * @param maxDurationSec   durée max pour une tournée (en secondes), ex: 3600 pour 1h.
      * @param speedMetersPerSec vitesse constante des livreurs (m/s).
      */
+
     public static TwoDriverSolution solveForTwoDrivers(PickupDeliveryModel model,
                                                        double maxDurationSec,
                                                        double speedMetersPerSec) {
+
+        int[] pickupOfDelivery = model.getPickupOfDelivery();
         if (model == null || model.getMatriceCout() == null || model.getVertexOrder() == null) {
             throw new IllegalStateException("PickupDeliveryModel ou matrice non initialisés");
         }
@@ -145,6 +150,138 @@ public class TwoDriverTspSolver {
             // Cas simple : on met toutes les demandes sur le driver 2
             SubTspData sub2 = buildSubProblem(globalCost, globalVertexOrder, depotId, deliveriesOrdered);
             CalculTSP tsp2 = new CalculTSP(sub2.costMatrix, sub2.vertexOrder);
+            tsp2.solveFromId(depotId);
+            List<Long> path2 = tsp2.getBestPathIds();
+            double t2 = computeTourDurationSeconds(tsp2, sub2.costMatrix, sub2.vertexOrder,
+                    serviceTimes, sub2.depotIndex, speedMetersPerSec);
+            return new TwoDriverSolution(List.of(), path2, 0.0, t2);
+        }
+
+        return best;
+    }
+
+    public static TwoDriverSolution solveForTwoDrivers2(PickupDeliveryModel model,
+                                                       double maxDurationSec,
+                                                       double speedMetersPerSec) {
+
+        int[] pickupOfDelivery = model.getPickupOfDelivery();
+        if (model == null || model.getMatriceCout() == null || model.getVertexOrder() == null) {
+            throw new IllegalStateException("PickupDeliveryModel ou matrice non initialisés");
+        }
+        if (speedMetersPerSec <= 0) {
+            throw new IllegalArgumentException("La vitesse doit être > 0");
+        }
+
+        double[][] globalCost = model.getMatriceCout().getCostMatrix();
+        List<Long> globalVertexOrder = model.getVertexOrder();
+        DemandeDelivery demande = model.getDemandeDelivery();
+        if (demande == null || demande.getDeliveries().isEmpty()) {
+            // Pas de demandes : tournée vide pour les deux.
+            return new TwoDriverSolution(List.of(), List.of(), 0.0, 0.0);
+        }
+
+        Entrepot entrepot = model.getEntrepot();
+        if (entrepot == null || entrepot.getAdresse() == null) {
+            throw new IllegalStateException("Entrepôt non défini dans le modèle");
+        }
+        long depotId = entrepot.getAdresse();
+
+        // 1) Tournée globale (un seul livreur) pour obtenir un ordre "pseudo-optimisé"
+
+
+        CalculTSP globalTsp = new CalculTSP(globalCost, globalVertexOrder);
+        globalTsp.solveFromId(depotId);
+        List<Long> globalRouteIds = globalTsp.getBestPathIds();
+
+        // 2) Ordre des demandes (Delivery) dans cette tournée
+        List<Delivery> deliveriesOrdered = orderDeliveriesByGlobalRoute(demande.getDeliveries(), globalRouteIds);
+
+        // 3) Pré-calcul des temps de service par ID de noeud
+        Map<Long, Long> serviceTimes = buildServiceTimeMap(demande);
+
+        // 4) On essaie de donner le "plus possible" au driver 1 en respectant maxDurationSec
+        TwoDriverSolution best = null;
+
+        for (int k = deliveriesOrdered.size(); k >= 0; k--) {
+            // demandes [0..k-1] pour driver 1, [k..end] pour driver 2
+            List<Delivery> d1 = deliveriesOrdered.subList(0, k);
+            List<Delivery> d2 = deliveriesOrdered.subList(k, deliveriesOrdered.size());
+
+            // Construire les listes d'IDs (depot + tous pickups/deliveries correspondants)
+            SubTspData sub1 = buildSubProblem(globalCost, globalVertexOrder, depotId, d1);
+            if (sub1.vertexOrder.size() <= 1) {
+                // Rien ou seulement le dépôt -> temps 0 pour le driver 1
+                // On teste quand même une solution "driver 1 vide".
+                double t1 = 0.0;
+
+                SubTspData sub2 = buildSubProblem(globalCost, globalVertexOrder, depotId, d2);
+                List<Long> path2 = List.of();
+                double t2 = 0.0;
+                if (sub2.vertexOrder.size() > 1) {
+                    int[] subPickup2 = buildSubPickupOfDelivery(
+                            model.getPickupOfDelivery(),
+                            model.getVertexOrder(),
+                            sub2.vertexOrder
+                    );
+                    CalculTSP tsp2 = new CalculTSP(sub2.costMatrix, sub2.vertexOrder,subPickup2);
+                    tsp2.solveFromId(depotId);
+                    path2 = tsp2.getBestPathIds();
+                    t2 = computeTourDurationSeconds(tsp2, sub2.costMatrix, sub2.vertexOrder,
+                            serviceTimes, sub2.depotIndex, speedMetersPerSec);
+                }
+
+                best = new TwoDriverSolution(List.of(), path2, t1, t2);
+                break;
+            }
+
+            // TSP pour le driver 1
+            int[] subPickup = buildSubPickupOfDelivery(
+                    model.getPickupOfDelivery(),
+                    model.getVertexOrder(),
+                    sub1.vertexOrder
+            );
+            CalculTSP tsp1 = new CalculTSP(sub1.costMatrix, sub1.vertexOrder,subPickup);
+            tsp1.solveFromId(depotId);
+            List<Long> path1 = tsp1.getBestPathIds();
+            if (path1.isEmpty()) {
+                continue; // pas de circuit valable
+            }
+            double duration1 = computeTourDurationSeconds(tsp1, sub1.costMatrix, sub1.vertexOrder,
+                    serviceTimes, sub1.depotIndex, speedMetersPerSec);
+
+            if (duration1 <= maxDurationSec) {
+                // OK pour le driver 1, on calcule la tournée du driver 2
+                SubTspData sub2 = buildSubProblem(globalCost, globalVertexOrder, depotId, d2);
+                List<Long> path2 = List.of();
+                double duration2 = 0.0;
+
+                if (sub2.vertexOrder.size() > 1) {
+                    int[] subPickup2 = buildSubPickupOfDelivery(
+                            model.getPickupOfDelivery(),
+                            model.getVertexOrder(),
+                            sub2.vertexOrder
+                    );
+                    CalculTSP tsp2 = new CalculTSP(sub2.costMatrix, sub2.vertexOrder,subPickup2);
+                    tsp2.solveFromId(depotId);
+                    path2 = tsp2.getBestPathIds();
+                    duration2 = computeTourDurationSeconds(tsp2, sub2.costMatrix, sub2.vertexOrder,
+                            serviceTimes, sub2.depotIndex, speedMetersPerSec);
+                }
+                best = new TwoDriverSolution(path1, path2, duration1, duration2);
+                break; // comme on parcourt k de n → 0, le premier OK maximise la charge du driver 1
+            }
+        }
+
+        // Si on n'a jamais trouvé de découpage <= 1h, on renvoie tout sur driver 2 (ou tout driver 1)
+        if (best == null) {
+            // Cas simple : on met toutes les demandes sur le driver 2
+            SubTspData sub2 = buildSubProblem(globalCost, globalVertexOrder, depotId, deliveriesOrdered);
+            int[] subPickup2 = buildSubPickupOfDelivery(
+                    model.getPickupOfDelivery(),
+                    model.getVertexOrder(),
+                    sub2.vertexOrder
+            );
+            CalculTSP tsp2 = new CalculTSP(sub2.costMatrix, sub2.vertexOrder,subPickup2);
             tsp2.solveFromId(depotId);
             List<Long> path2 = tsp2.getBestPathIds();
             double t2 = computeTourDurationSeconds(tsp2, sub2.costMatrix, sub2.vertexOrder,
@@ -302,4 +439,51 @@ public class TwoDriverTspSolver {
         }
         return time;
     }
+
+
+    private static int[] buildSubPickupOfDelivery(
+            int[] globalPickupOfDelivery,
+            List<Long> globalVertexOrder,
+            List<Long> subVertexOrder
+    ) {
+        int n = subVertexOrder.size();
+        int[] subPickup = new int[n];
+        Arrays.fill(subPickup, -1);
+
+        // ID -> global index
+        Map<Long, Integer> globalIndex = new HashMap<>();
+        for (int i = 0; i < globalVertexOrder.size(); i++) {
+            globalIndex.put(globalVertexOrder.get(i), i);
+        }
+
+        // ID -> local index
+        Map<Long, Integer> localIndex = new HashMap<>();
+        for (int i = 0; i < subVertexOrder.size(); i++) {
+            localIndex.put(subVertexOrder.get(i), i);
+        }
+
+        // parcourir chaque delivery possible du sous-TSP
+        for (int localD = 0; localD < n; localD++) {
+
+            long idD = subVertexOrder.get(localD);
+            Integer globalD = globalIndex.get(idD);
+            if (globalD == null) continue;
+
+            int globalP = globalPickupOfDelivery[globalD];
+            if (globalP < 0) continue;
+
+            // quel est l'ID du pickup correspondant ?
+            long idPickup = globalVertexOrder.get(globalP);
+
+            // existe-t-il dans le sous-problème ?
+            Integer localP = localIndex.get(idPickup);
+            if (localP != null) {
+                // → contrainte valable dans le sous-TSP
+                subPickup[localD] = localP;
+            }
+        }
+
+        return subPickup;
+    }
+
 }

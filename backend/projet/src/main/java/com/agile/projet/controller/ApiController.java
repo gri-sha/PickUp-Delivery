@@ -111,8 +111,8 @@ public class ApiController {
 
     @GetMapping("/get-tsp2") //if a request goes to the root of our web site, it will be called (argument "/")
     public List<Long>  getTsp() throws Exception {
-        controller.createPlan("moyenPlan.xml");
-        controller.createDeliveryFromXml("demandeMoyen5.xml");
+        controller.createPlan("grandPlan.xml");
+        controller.createDeliveryFromXml("demandeGrand7.xml");
         controller.computeShortestPaths();
         //controller.findBestPath();
 

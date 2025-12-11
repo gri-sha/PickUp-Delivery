@@ -230,7 +230,7 @@ public class Controller {
         double speed = 15000.0 / 3600.0;
         double maxDurationSec = 6000.0; // 1 heure
 
-        TwoDriverTspSolver.TwoDriverSolution sol = TwoDriverTspSolver.solveForTwoDrivers(pickupDeliveryModel, maxDurationSec, speed);
+        TwoDriverTspSolver.TwoDriverSolution sol = TwoDriverTspSolver.solveForTwoDrivers2(pickupDeliveryModel, maxDurationSec, speed);
 
         List<Long> d1 = sol.getDriver1PathIds();
         List<Long> d2 = sol.getDriver2PathIds();
