@@ -45,7 +45,6 @@ public class ApiController {
         controller.createPlan("moyenPlan.xml");
         controller.createDeliveryFromXml("demandeMoyen5.xml");
         controller.computeShortestPaths();
-        controller.findBestPath();
         var tournee = controller.findBestPath();
 
         // Print lisible en console
