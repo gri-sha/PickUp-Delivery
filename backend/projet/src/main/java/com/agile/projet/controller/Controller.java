@@ -69,28 +69,27 @@ public class Controller {
         if (!vertexOrder.contains(depotId))
             throw new IllegalStateException("L'ID dépôt n'est pas présent dans vertexOrder.");
 
-        // --- Résolution avec TON TSP (sans contrainte interne) ---
-        CalculTSP tsp = new CalculTSP(costMatrix, vertexOrder);
+        // >>> NOUVEAU : passer la contrainte pickup->delivery <<<
+        int[] pickupOfDelivery = pickupDeliveryModel.getPickupOfDelivery();
+        if (pickupOfDelivery == null || pickupOfDelivery.length != costMatrix.length) {
+            throw new IllegalStateException("pickupOfDelivery manquant ou invalide (computeShortestPaths d'abord).");
+        }
+
+        CalculTSP tsp = new CalculTSP(costMatrix, vertexOrder, pickupOfDelivery);
         tsp.solveFromId(depotId);
 
         List<Integer> pathIdx = tsp.getBestPathIndices();
         if (pathIdx.isEmpty())
-            throw new IllegalStateException("Aucune tournée trouvée (chemins manquants ?)");
-
-        // --- Récupérer la contrainte indices (construite dans computeAstar) ---
-        int[] pickupOfDelivery = pickupDeliveryModel.getPickupOfDelivery();
-        if (pickupOfDelivery != null) {
-            int startIndex = vertexOrder.indexOf(depotId);
-            pathIdx = enforcePrecedence(pathIdx, pickupOfDelivery, startIndex);
-        }
+            throw new IllegalStateException("Aucune tournée faisable trouvée.");
 
         // Fermer le cycle pour l’affichage
         List<Integer> closed = new java.util.ArrayList<>(pathIdx);
         if (!closed.isEmpty()) closed.add(closed.get(0));
 
-        // Construire la tournée (type/label + coût par tronçon et cumul)
+        // Construire les étapes (type/label + coût par tronçon et cumul)
         java.util.List<Tournee.Etape> etapes = new java.util.ArrayList<>();
         double cumul = 0.0;
+
         for (int k = 0; k < closed.size(); k++) {
             int idx = closed.get(k);
             long id = vertexOrder.get(idx);
@@ -107,63 +106,15 @@ public class Controller {
             etapes.add(new Tournee.Etape(id, type, label, leg, cumul));
         }
 
-        // Recalcul du coût total sur la tournée réparée (pour cohérence d’affichage)
+        // Coût total recalculé sur le cycle fermé
         double total = 0.0;
         for (int i = 1; i < closed.size(); i++) {
-            total += costMatrix[closed.get(i-1)][closed.get(i)];
+            total += costMatrix[closed.get(i - 1)][closed.get(i)];
         }
 
-        this.tournee = new Tournee(total, etapes);
-        return this.tournee;
-    }
-    /**
-     * Répare la séquence d’indices pour imposer "pickup -> delivery".
-     * Si une livraison D apparaît avant son pickup P, on déplace P juste avant D.
-     * On essaye de conserver le départ (startIdx) en tête.
-     */
-    private List<Integer> enforcePrecedence(List<Integer> pathIdx, int[] pickupOfDelivery, int startIdx) {
-        List<Integer> seq = new java.util.ArrayList<>(pathIdx);
 
-        // Mettre startIdx en tête (rotation), si présent
-        int posStart = seq.indexOf(startIdx);
-        if (posStart > 0) {
-            java.util.Collections.rotate(seq, -posStart);
-        }
-
-        int n = seq.size();
-        int[] pos = new int[n];
-        for (int i = 0; i < n; i++) pos[seq.get(i)] = i;
-
-        boolean changed;
-        int guard = 0;
-        do {
-            changed = false;
-            for (int d = 0; d < n; d++) {
-                int p = pickupOfDelivery[d];
-                if (p == -1) continue; // d n'est pas une livraison
-                int posD = pos[d];
-                int posP = pos[p];
-                if (posP > posD) {
-                    // Déplacer le pickup P avant la livraison D
-                    seq.remove(posP);
-                    seq.add(posD, p);
-
-                    // Recalcul des positions pour le segment affecté
-                    int from = Math.min(posD, posP);
-                    int to   = Math.max(posD, posP);
-                    for (int i = from; i <= to; i++) pos[seq.get(i)] = i;
-
-                    changed = true;
-                }
-            }
-            guard++;
-        } while (changed && guard < n); // sécurité
-
-        // Remettre la rotation inverse si on avait déplacé le start en tête
-        if (posStart > 0) {
-            java.util.Collections.rotate(seq, posStart);
-        }
-        return seq;
+        Tournee tournee = new Tournee(total, etapes);
+        return tournee;
     }
 
 

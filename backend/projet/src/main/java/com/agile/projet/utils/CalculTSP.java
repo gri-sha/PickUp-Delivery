@@ -4,9 +4,9 @@ import java.util.*;
 
 /**
  * TSP Branch & Bound sur matrice de coûts.
- * - La matrice travaille en INDICES (int 0..n-1)
- * - Cette classe construit automatiquement un mapping ID (Long) -> index (int)
- * - Heuristique "Nearest Neighbor" (NN) pour initialiser un incumbent (bestCost/bestPath)
+ * - Matrice en indices (0..n-1), mapping via vertexOrder (IDs Long).
+ * - Précédence Pickup -> Delivery optionnelle via pickupOfDelivery[indexDelivery] = indexPickup (sinon -1).
+ * - Heuristique NN pour incumbent, borne simple minEdge.
  */
 public class CalculTSP {
 
@@ -14,6 +14,9 @@ public class CalculTSP {
     private final double[][] cost;          // cost[i][j] = cout (INF si impossible)
     private final List<Long> vertexOrder;   // index -> ID
     private final Map<Long, Integer> idToIndex; // ID -> index (construit ici)
+
+    // Contrainte pickup->delivery: si delivery j, alors pickupOfDelivery[j] = i (index du pickup), sinon -1
+    private final int[] pickupOfDelivery;
 
     // État de recherche
     private final boolean[] visited;
@@ -28,6 +31,8 @@ public class CalculTSP {
     /**
      * @param costMatrix   matrice carrée NxN de coûts (INF si pas de trajet)
      * @param vertexOrder  liste de IDs (Long) telle que vertexOrder.get(i) = ID à l'index i
+     *
+     * Contrainte pickup->delivery désactivée (tous à -1).
      */
     public CalculTSP(double[][] costMatrix, List<Long> vertexOrder) {
         Objects.requireNonNull(costMatrix, "costMatrix ne peut pas être null");
@@ -57,7 +62,26 @@ public class CalculTSP {
             }
         }
 
+        // Par défaut: aucune contrainte (tous -1)
+        this.pickupOfDelivery = new int[n];
+        Arrays.fill(this.pickupOfDelivery, -1);
+
         precomputeMinEdge();
+    }
+
+    /**
+     * @param pickupOfDelivery tableau de taille N:
+     *                         pour un index 'delivery', valeur = index 'pickup' requis, sinon -1.
+     *
+     * Contrainte pickup->delivery activée.
+     */
+    public CalculTSP(double[][] costMatrix, List<Long> vertexOrder, int[] pickupOfDelivery) {
+        this(costMatrix, vertexOrder); // vérifs + init
+        if (pickupOfDelivery == null || pickupOfDelivery.length != n) {
+            throw new IllegalArgumentException("pickupOfDelivery nul ou taille != n");
+        }
+        // Remplacer les -1 par la contrainte fournie
+        System.arraycopy(pickupOfDelivery, 0, this.pickupOfDelivery, 0, n);
     }
 
     // ---------- API publique ----------
@@ -196,9 +220,19 @@ public class CalculTSP {
         // Générer les candidats restants…
         List<Integer> candidates = new ArrayList<>();
         for (int next = 0; next < n; next++) {
-            if (!visited[next] && !Double.isInfinite(cost[last][next])) {
-                candidates.add(next);
+            if (visited[next]) continue;
+            if (Double.isInfinite(cost[last][next])) continue;
+
+            // --------- CONTRAINTE PICKUP -> DELIVERY ----------
+            // Si 'next' est une livraison (pickupOfDelivery[next] != -1),
+            // on n'autorise pas de la visiter tant que son pickup n'a pas été visité.
+            int reqPickup = pickupOfDelivery[next];
+            if (reqPickup != -1 && !visited[reqPickup]) {
+                continue; // coupe la branche
             }
+            // ---------------------------------------------------
+
+            candidates.add(next);
         }
         // …puis trier par coût croissant pour trouver vite une bonne solution
         candidates.sort(Comparator.comparingDouble(a -> cost[last][a]));
