@@ -54,6 +54,9 @@ public class PickupDeliveryModel {
         return demandeDelivery;
     }
     public void createDelivery(String deliveryXml) throws Exception {
+        // Reset demandeDelivery to prevent accumulation
+        demandeDelivery = new DemandeDelivery();
+
         XmlDeliveryParser xmlDeliveryParser = new XmlDeliveryParser();
         xmlDeliveryParser.parse(deliveryXml,demandeDelivery);
         Entrepot entrepot1= demandeDelivery.getEntrepot();

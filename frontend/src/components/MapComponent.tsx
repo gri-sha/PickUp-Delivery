@@ -40,7 +40,7 @@ interface MapComponentProps {
   userLocation: { lat: number; lng: number } | null;
   customStops: CustomStop[];
   onMapClick: (lat: number, lng: number) => void;
-  tspPath: string[];
+  tspPaths: string[][]; // Multiple paths, one per courier
 }
 
 function MapController({ bounds }: { bounds: [number, number][] }) {
@@ -68,9 +68,12 @@ const MapComponent: React.FC<MapComponentProps> = ({
   userLocation, 
   onMapClick,
   customStops,
-  tspPath
+  tspPaths
 }) => {
   const center: [number, number] = [45.75, 4.85]; // Default Lyon
+
+  // Define different colors for each courier
+  const courierColors = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'];
 
   return (
     <MapContainer 
@@ -163,103 +166,107 @@ const MapComponent: React.FC<MapComponentProps> = ({
         </Marker>
       )}
 
-      {/* TSP Path with arrows */}
-      {tspPath.length > 0 && mapData && (
-        <>
-          <Polyline
-            positions={tspPath
-              .map(nodeId => mapData.nodes.get(nodeId))
-              .filter(node => node !== undefined)
-              .map(node => [node!.latitude, node!.longitude] as [number, number])
-            }
-            color="#ef4444"
-            weight={5}
-            opacity={0.9}
-            pathOptions={{
-              className: 'tsp-path-with-arrows'
-            }}
-          >
-            <Popup>
-              <div>
-                <strong>TSP Route</strong><br/>
-                Total stops: {tspPath.length}
-              </div>
-            </Popup>
-          </Polyline>
+      {/* TSP Paths with arrows - one per courier */}
+      {tspPaths.length > 0 && mapData && tspPaths.map((tspPath, courierIdx) => {
+        const courierColor = courierColors[courierIdx % courierColors.length];
 
-          {/* Direction arrows along the path */}
-          {tspPath.slice(0, -1).map((nodeId, idx) => {
-            const currentNode = mapData.nodes.get(nodeId);
-            const nextNode = mapData.nodes.get(tspPath[idx + 1]);
+        return (
+          <div key={`courier-${courierIdx}`}>
+            <Polyline
+              positions={tspPath
+                .map(nodeId => mapData.nodes.get(nodeId))
+                .filter(node => node !== undefined)
+                .map(node => [node!.latitude, node!.longitude] as [number, number])
+              }
+              color={courierColor}
+              weight={5}
+              opacity={0.8}
+              pathOptions={{
+                className: `tsp-path-courier-${courierIdx}`
+              }}
+            >
+              <Popup>
+                <div>
+                  <strong>Courier {courierIdx + 1} Route</strong><br/>
+                  Total stops: {tspPath.length}
+                </div>
+              </Popup>
+            </Polyline>
 
-            if (!currentNode || !nextNode) return null;
+            {/* Direction arrows along the path */}
+            {tspPath.slice(0, -1).map((nodeId, idx) => {
+              const currentNode = mapData.nodes.get(nodeId);
+              const nextNode = mapData.nodes.get(tspPath[idx + 1]);
 
-            // Calculate midpoint for arrow placement
-            const midLat = (currentNode.latitude + nextNode.latitude) / 2;
-            const midLng = (currentNode.longitude + nextNode.longitude) / 2;
+              if (!currentNode || !nextNode) return null;
 
-            // Calculate angle for arrow rotation
-            const angle = Math.atan2(
-              nextNode.latitude - currentNode.latitude,
-              nextNode.longitude - currentNode.longitude
-            ) * (180 / Math.PI);
+              // Calculate midpoint for arrow placement
+              const midLat = (currentNode.latitude + nextNode.latitude) / 2;
+              const midLng = (currentNode.longitude + nextNode.longitude) / 2;
 
-            const arrowIcon = L.divIcon({
-              html: `<div style="transform: rotate(${angle + 90}deg); color: #ef4444; font-size: 24px;">▶</div>`,
-              className: 'arrow-marker',
-              iconSize: [20, 20],
-              iconAnchor: [10, 10]
-            });
+              // Calculate angle for arrow rotation
+              const angle = Math.atan2(
+                nextNode.latitude - currentNode.latitude,
+                nextNode.longitude - currentNode.longitude
+              ) * (180 / Math.PI);
 
-            return (
-              <Marker
-                key={`arrow-${idx}`}
-                position={[midLat, midLng]}
-                icon={arrowIcon}
-              />
-            );
-          })}
+              const arrowIcon = L.divIcon({
+                html: `<div style="transform: rotate(${angle + 90}deg); color: ${courierColor}; font-size: 24px;">▶</div>`,
+                className: 'arrow-marker',
+                iconSize: [20, 20],
+                iconAnchor: [10, 10]
+              });
 
-          {/* Numbered markers at each stop */}
-          {tspPath.map((nodeId, idx) => {
-            const node = mapData.nodes.get(nodeId);
-            if (!node) return null;
+              return (
+                <Marker
+                  key={`arrow-${courierIdx}-${idx}`}
+                  position={[midLat, midLng]}
+                  icon={arrowIcon}
+                />
+              );
+            })}
 
-            const numberIcon = L.divIcon({
-              html: `<div style="
-                background: #ef4444;
-                color: white;
-                border: 3px solid #1f2937;
-                border-radius: 50%;
-                width: 28px;
-                height: 28px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-weight: bold;
-                font-size: 14px;
-                box-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-              ">${idx + 1}</div>`,
-              className: 'number-marker',
-              iconSize: [28, 28],
-              iconAnchor: [14, 14]
-            });
+            {/* Numbered markers at each stop */}
+            {tspPath.map((nodeId, idx) => {
+              const node = mapData.nodes.get(nodeId);
+              if (!node) return null;
 
-            return (
-              <Marker
-                key={`number-${idx}`}
-                position={[node.latitude, node.longitude]}
-                icon={numberIcon}
-              >
-                <Popup>
-                  <strong>Stop {idx + 1}</strong><br/>
-                  Node ID: {nodeId}
-                </Popup>
-              </Marker>
-            );
-          })}
-        </>
-      )}
+              const numberIcon = L.divIcon({
+                html: `<div style="
+                  background: ${courierColor};
+                  color: white;
+                  border: 3px solid #1f2937;
+                  border-radius: 50%;
+                  width: 28px;
+                  height: 28px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  font-weight: bold;
+                  font-size: 14px;
+                  box-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+                ">${idx + 1}</div>`,
+                className: 'number-marker',
+                iconSize: [28, 28],
+                iconAnchor: [14, 14]
+              });
+
+              return (
+                <Marker
+                  key={`number-${courierIdx}-${idx}`}
+                  position={[node.latitude, node.longitude]}
+                  icon={numberIcon}
+                >
+                  <Popup>
+                    <strong>Courier {courierIdx + 1} - Stop {idx + 1}</strong><br/>
+                    Node ID: {nodeId}
+                  </Popup>
+                </Marker>
+              );
+            })}
+          </div>
+        );
+      })}
 
       <MapClickHandler onClick={onMapClick} />
     </MapContainer>
