@@ -161,12 +161,14 @@ public class Controller {
     public List<Long> buildFullPathArgument(Tournee tournee) {
         MatriceChemins matrice = pickupDeliveryModel.getMatriceChemins();
         List<Long> fullPath = new ArrayList<>();
+        int size = tournee.getEtapes().size();
+        if (size == 0) {return fullPath; }
         tournee.getEtapes().get(0).getId();
 
         // Ajouter le premier point
         fullPath.add(tournee.getEtapes().get(0).getId());
 
-        int size = tournee.getEtapes().size();
+
         // Pour chaque paire consécutive dans la tournée
         for (int i = 0; i < size - 1; i++) {
             Long from = tournee.getEtapes().get(i).getId();
@@ -246,6 +248,66 @@ public class Controller {
 
         return List.of(t1, t2);
     }
+
+    public List<Tournee> findBestPathsForNDrivers(int nbDrivers) {
+
+        var sol = NDriverTspSolver.solveForNDrivers(pickupDeliveryModel, nbDrivers, 4.17);
+
+        List<Tournee> tournees = new ArrayList<>();
+
+        for (var d : sol.getDrivers()) {
+            tournees.add(buildTourneeFromIdList(d.getPathIds()));
+        }
+
+        printNDriverTournees(tournees);
+
+        return tournees;
+    }
+
+    public List<List<Long>> buildFullPathNTournées(List<Tournee> tournees) {
+        List<List<Long>> paths = new ArrayList<>();
+
+        for (Tournee tournee : tournees) {
+            paths.add(buildFullPathArgument(tournee));
+        }
+
+        return paths;
+    }
+
+
+    private void printNDriverTournees(List<Tournee> tournees) {
+
+        for (int d = 0; d < tournees.size(); d++) {
+
+            Tournee t = tournees.get(d);
+
+            System.out.println("=== Tournée Driver " + (d + 1) + " ===");
+
+            if (t.getEtapes().isEmpty()) {
+                System.out.println("Aucune étape (tournée vide)");
+            } else {
+                System.out.println("Coût total : " + t.getTotalCost());
+
+                int i = 1;
+                for (var etape : t.getEtapes()) {
+                    System.out.printf(
+                            "%2d. [%s] %-20s  leg=%.2f  cumul=%.2f (id=%d)%n",
+                            i++,
+                            etape.getType(),
+                            etape.getLabel(),
+                            etape.getLegCost(),
+                            etape.getCumulativeCost(),
+                            etape.getId()
+                    );
+                }
+            }
+
+            System.out.println(); // séparation entre drivers
+        }
+    }
+
+
+
 
     private Tournee buildTourneeFromIdList(List<Long> ids) {
 

@@ -63,7 +63,7 @@ public class ApiController {
 
     // New endpoint: accepts uploaded XML files (plan + request) and returns full TSP path
     @PostMapping(path = "/get-tsp", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public List<Long> getTspFromFiles(
+    public List<List<Long>> getTspFromFiles(
             @RequestPart("plan") MultipartFile planXml,
             @RequestPart("request") MultipartFile requestXml
     ) throws Exception {
@@ -99,10 +99,10 @@ public class ApiController {
             controller.createPlan(planName);
             controller.createDeliveryFromXml(requestName);
             controller.computeShortestPaths();
-            var tournee = controller.findBestPath();
+            List<Tournee> tournees =  controller.findBestPathsForNDrivers(4);
             log.info("TSP computation completed successfully.");
 
-            return controller.buildFullPath();
+            return controller.buildFullPathNTournées(tournees);
         } catch (Exception e) {
             log.error("TSP computation failed: {}", e.getMessage(), e);
             throw new IllegalArgumentException("Impossible de calculer le TSP: " + e.getMessage(), e);
@@ -125,6 +125,29 @@ public class ApiController {
         System.out.println("Tournee 2: " + tournee2);
 
         return tournee1;
+
+
+
+
+    }
+
+    @GetMapping("/get-tsp3") //if a request goes to the root of our web site, it will be called (argument "/")
+    public List<List<Long>>  getTsp3() throws Exception {
+        controller.createPlan("petitPlan.xml");
+        controller.createDeliveryFromXml("demandePetit1.xml");
+        controller.computeShortestPaths();
+        //controller.findBestPath();
+
+
+        //controller.solveTwoDriverTspExample();
+        List<Tournee> tournees =  controller.findBestPathsForNDrivers(4);
+        //List<Long> tournee1 = controller.buildFullPathArgument(tournees.get(0));
+        //List<Long> tournee2 = controller.buildFullPathArgument(tournees.get(1));
+        //System.out.println("Tournee 1: " + tournee1);
+        //System.out.println("Tournee 2: " + tournee2);
+
+        return controller.buildFullPathNTournées(tournees);
+
 
 
 
