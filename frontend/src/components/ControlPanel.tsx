@@ -15,15 +15,14 @@ interface ControlPanelProps {
   setPickupDuration: (duration: number | string) => void;
   deliveryDuration: number | string;
   setDeliveryDuration: (duration: number | string) => void;
-  onSetWarehouse: () => void;
-  isSettingWarehouse: boolean;
   onStartCollectNodes: () => void;
   onStopCollectNodes: () => void;
   onSaveClickedNodes: () => void;
   onClearClickedNodes: () => void;
   isCollectingNodes: boolean;
   clickedNodesCount: number;
-  onComputeTsp: () => void;
+  onComputeTsp: (planName: string, requestName: string) => void;
+  onUploadAndComputeTsp: (planFile: File, requestFile: File) => void;
 }
 
 export default function ControlPanel({
@@ -40,8 +39,6 @@ export default function ControlPanel({
   setPickupDuration,
   deliveryDuration,
   setDeliveryDuration,
-  onSetWarehouse,
-  isSettingWarehouse,
   onStartCollectNodes,
   onStopCollectNodes,
   onSaveClickedNodes,
@@ -49,6 +46,7 @@ export default function ControlPanel({
   isCollectingNodes,
   clickedNodesCount,
   onComputeTsp,
+  onUploadAndComputeTsp,
 }: ControlPanelProps) {
   const [MAP_FILES, setMapFiles] = useState<string[]>([]);
   const [REQUEST_FILES, setRequestFiles] = useState<string[]>([]);
@@ -56,38 +54,9 @@ export default function ControlPanel({
   const [selectedMap, setSelectedMap] = useState<string>("");
   const [selectedRequest, setSelectedRequest] = useState<string>("");
 
-  const [planFile, setPlanFile] = useState<File | null>(null);
-  const [requestFile, setRequestFile] = useState<File | null>(null);
+  const [uploadPlanFile, setUploadPlanFile] = useState<File | null>(null);
+  const [uploadRequestFile, setUploadRequestFile] = useState<File | null>(null);
 
-  const uploadXmlAndComputeTsp = async () => {
-    if (!planFile || !requestFile) {
-      alert("Please select both Plan XML and Request XML files.");
-      return;
-    }
-    try {
-      const form = new FormData();
-      console.log("Preparing files for upload:", planFile, requestFile);
-      form.append("plan", planFile);
-      form.append("request", requestFile);
-      for (let pair of form.entries()) {
-        console.log(pair[0], pair[1]); // pair[0] = nom du champ, pair[1] = fichier
-      }
-      const resp = await fetch("http://localhost:8080/get-tsp", {
-        method: "POST",
-        body: form,
-      });
-      if (!resp.ok) {
-        const text = await resp.text();
-        throw new Error(text || `HTTP ${resp.status}`);
-      }
-      const pathIds: number[] = await resp.json();
-      console.log("Computed TSP path ids:", pathIds);
-      alert(`TSP computed. Path length: ${pathIds.length}`);
-    } catch (e: any) {
-      console.error("Upload/Compute TSP failed", e);
-      alert(`Upload/Compute failed: ${e.message}`);
-    }
-  };
 
   const handleMapSelect = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const filename = e.target.value;
@@ -252,37 +221,68 @@ export default function ControlPanel({
           </select>
         </div>
 
-        {/* Local XML upload to compute TSP on backend */}
+        {/* Upload XML Files Section */}
         <div
           style={{
             border: "2px solid #1f2937",
             padding: "8px",
             marginTop: "10px",
+            backgroundColor: "#f0f9ff",
           }}
         >
-          <h4 style={{ marginTop: 0 }}>Upload XMLs (Plan + Request)</h4>
-          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+          <h4 style={{ marginTop: 0, fontSize: "0.9rem" }}>Upload & Compute TSP</h4>
+          <p style={{ fontSize: "0.75rem", color: "#6b7280", marginBottom: "8px" }}>
+            Upload your own XML files to compute TSP
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             <div>
-              <label style={{ fontSize: "0.8rem" }}>Plan XML:</label>
+              <label style={{ fontSize: "0.8rem", display: "block", marginBottom: "4px" }}>
+                Plan XML:
+              </label>
               <input
                 type="file"
                 accept=".xml"
-                onChange={(e) => setPlanFile(e.target.files?.[0] || null)}
+                onChange={(e) => setUploadPlanFile(e.target.files?.[0] || null)}
+                style={{ fontSize: "0.8rem", width: "100%" }}
               />
+              {uploadPlanFile && (
+                <div style={{ fontSize: "0.7rem", color: "#059669", marginTop: "2px" }}>
+                  ✓ {uploadPlanFile.name}
+                </div>
+              )}
             </div>
             <div>
-              <label style={{ fontSize: "0.8rem" }}>Request XML:</label>
+              <label style={{ fontSize: "0.8rem", display: "block", marginBottom: "4px" }}>
+                Request XML:
+              </label>
               <input
                 type="file"
                 accept=".xml"
-                onChange={(e) => setRequestFile(e.target.files?.[0] || null)}
+                onChange={(e) => setUploadRequestFile(e.target.files?.[0] || null)}
+                style={{ fontSize: "0.8rem", width: "100%" }}
               />
+              {uploadRequestFile && (
+                <div style={{ fontSize: "0.7rem", color: "#059669", marginTop: "2px" }}>
+                  ✓ {uploadRequestFile.name}
+                </div>
+              )}
             </div>
             <button
-              onClick={uploadXmlAndComputeTsp}
-              disabled={!planFile || !requestFile}
+              onClick={() => {
+                if (uploadPlanFile && uploadRequestFile) {
+                  onUploadAndComputeTsp(uploadPlanFile, uploadRequestFile);
+                }
+              }}
+              disabled={!uploadPlanFile || !uploadRequestFile}
+              style={{
+                backgroundColor: uploadPlanFile && uploadRequestFile ? "#3b82f6" : "#e5e7eb",
+                color: uploadPlanFile && uploadRequestFile ? "#ffffff" : "#9ca3af",
+                cursor: uploadPlanFile && uploadRequestFile ? "pointer" : "not-allowed",
+                padding: "8px",
+                fontWeight: "bold",
+              }}
             >
-              Upload & Compute TSP
+              Upload & Calculate TSP
             </button>
           </div>
         </div>
@@ -303,19 +303,6 @@ export default function ControlPanel({
         <h3>Actions</h3>
 
         <div>
-          <button
-            onClick={onSetWarehouse}
-            style={{
-              width: "100%",
-              marginBottom: "10px",
-              backgroundColor: isSettingWarehouse ? "#fde047" : "#ffffff",
-            }}
-          >
-            {isSettingWarehouse
-              ? "Click on Map to Set Warehouse"
-              : "Set Warehouse Location"}
-          </button>
-
           {/* Section Collect Nodes */}
           <div
             style={{
@@ -488,7 +475,11 @@ export default function ControlPanel({
           <button onClick={onSaveRequest} style={{ flex: 1 }}>
             Save Request
           </button>
-          <button onClick={onComputeTsp} style={{ flex: 1 }}>
+          <button
+            onClick={() => onComputeTsp(selectedMap, selectedRequest)}
+            style={{ flex: 1 }}
+            disabled={!selectedMap || !selectedRequest}
+          >
             Calculate TSP
           </button>
         </div>

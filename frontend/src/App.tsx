@@ -23,6 +23,7 @@ function App() {
   const [pickupDuration, setPickupDuration] = useState<number | string>('');
   const [deliveryDuration, setDeliveryDuration] = useState<number | string>('');
 
+
   const handleLoadMap = async (xmlText: string) => {
     try {
       const data = parseMapXML(xmlText);
@@ -72,7 +73,6 @@ function App() {
       if (mapData) {
         const nearestNode = findNearestNode(mapData, lat, lng);
         if (nearestNode) {
-          // Vérifier si le noeud n'est pas déjà dans la liste
           const alreadyExists = clickedNodes.some(node => node.id === nearestNode.id);
           if (!alreadyExists) {
             setClickedNodes([...clickedNodes, nearestNode]);
@@ -116,7 +116,7 @@ function App() {
             nodeId: nearestNode.id,
             departureTime: deliveryRequest?.warehouse?.departureTime || "08:00:00"
           };
-          
+
           if (deliveryRequest) {
             setDeliveryRequest({
               ...deliveryRequest,
@@ -134,8 +134,68 @@ function App() {
         }
       }
     } else {
-      // Default behavior
       console.log(`Clicked at ${lat}, ${lng}`);
+    }
+  };
+
+  const handleConfirmAdd = () => {
+    if (tempPickupNode && tempDeliveryNode) {
+      const newPickup: CustomStop = {
+        nodeId: tempPickupNode.id,
+        latitude: tempPickupNode.latitude,
+        longitude: tempPickupNode.longitude,
+        type: 'pickup',
+        duration: Number(pickupDuration) || 0
+      };
+      const newDelivery: CustomStop = {
+        nodeId: tempDeliveryNode.id,
+        latitude: tempDeliveryNode.latitude,
+        longitude: tempDeliveryNode.longitude,
+        type: 'delivery',
+        duration: Number(deliveryDuration) || 0
+      };
+      setCustomStops([...customStops, newPickup, newDelivery]);
+      setTempPickupNode(null);
+      setTempDeliveryNode(null);
+      setPickupDuration('');
+      setDeliveryDuration('');
+      setClickMode('default');
+    }
+  };
+
+  const handleSaveRequest = async () => {
+    if (!deliveryRequest && customStops.length === 0) {
+      alert("No delivery request to save.");
+      return;
+    }
+
+    const filename = prompt("Enter filename to save (e.g., myRequest.xml):", "newRequest.xml");
+    if (!filename) return;
+
+    const xmlContent = generateDeliveryXML(deliveryRequest, customStops);
+    const blob = new Blob([xmlContent], { type: "text/xml" });
+    const file = new File([blob], filename, { type: "text/xml" });
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const response = await fetch("http://localhost:8080/upload-request", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        alert(`File saved successfully!\n\nFilename: ${result.filename}\nPath: ${result.path}`);
+      } else {
+        const errorText = await response.text();
+        console.error("Upload failed:", errorText);
+        alert("Failed to save request to server.");
+      }
+    } catch (error) {
+      console.error("Error saving request:", error);
+      alert("Error saving request to server.");
     }
   };
 
@@ -226,106 +286,78 @@ function App() {
     }
   };
 
-  const handleConfirmAdd = () => {
-    if (tempPickupNode && tempDeliveryNode) {
-      const newPickup: CustomStop = {
-        nodeId: tempPickupNode.id,
-        latitude: tempPickupNode.latitude,
-        longitude: tempPickupNode.longitude,
-        type: 'pickup',
-        duration: Number(pickupDuration) || 0
-      };
-      const newDelivery: CustomStop = {
-        nodeId: tempDeliveryNode.id,
-        latitude: tempDeliveryNode.latitude,
-        longitude: tempDeliveryNode.longitude,
-        type: 'delivery',
-        duration: Number(deliveryDuration) || 0
-      };
-      setCustomStops([...customStops, newPickup, newDelivery]);
-      setTempPickupNode(null);
-      setTempDeliveryNode(null);
-      setPickupDuration('');
-      setDeliveryDuration('');
-      setClickMode('default');
-    }
-  };
-
-  const handleSaveRequest = async () => {
-    if (!deliveryRequest && customStops.length === 0) {
-      alert("No delivery request to save.");
+  const handleComputeTsp = async (planName: string, requestName: string) => {
+    if (!planName || !requestName) {
+      alert("Please select both a plan and a request before calculating TSP.");
       return;
     }
 
-    const filename = prompt("Enter filename to save (e.g., myRequest.xml):", "newRequest.xml");
-    if (!filename) return;
-
-    const xmlContent = generateDeliveryXML(deliveryRequest, customStops);
-    const blob = new Blob([xmlContent], { type: "text/xml" });
-    const file = new File([blob], filename, { type: "text/xml" });
-
-    const formData = new FormData();
-    formData.append("file", file);
-
     try {
-      const response = await fetch("http://localhost:8080/upload-request", {
+      const response = await fetch(
+        `http://localhost:8080/get-tsp?planName=${encodeURIComponent(planName)}&requestName=${encodeURIComponent(requestName)}`
+      );
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Failed to fetch TSP");
+      }
+      const nodeIds: number[] = await response.json();
+      const nodeIdsStr = nodeIds.map((id) => id.toString());
+      setTspPath(nodeIdsStr);
+      alert("TSP computed successfully!");
+    } catch (error: any) {
+      console.error("Error computing TSP:", error);
+      alert(`Failed to compute TSP: ${error.message || 'Unknown error'}`);
+    }
+  };
+
+  const handleUploadAndComputeTsp = async (planFile: File, requestFile: File) => {
+    try {
+      const formData = new FormData();
+      formData.append("plan", planFile);
+      formData.append("request", requestFile);
+
+      const response = await fetch("http://localhost:8080/get-tsp", {
         method: "POST",
         body: formData,
       });
 
-      if (response.ok) {
-        const result = await response.json();
-        alert(`File saved successfully!\n\nFilename: ${result.filename}\nPath: ${result.path}`);
-      } else {
-        const errorText = await response.text();
-        console.error("Upload failed:", errorText);
-        alert("Failed to save request to server.");
-      }
-    } catch (error) {
-      console.error("Error saving request:", error);
-      alert("Error saving request to server.");
-    }
-  };
-
-  const handleSendRequest = () => {
-    console.log("Sending request to server...");
-    alert("Request sent to server!");
-  };
-
-  const handleComputeTsp = async () => {
-    try {
-      const response = await fetch("http://localhost:8080/get-tsp");
       if (!response.ok) {
-        throw new Error("Failed to fetch TSP");
+        const errorText = await response.text();
+        throw new Error(errorText || "Failed to compute TSP");
       }
+
       const nodeIds: number[] = await response.json();
-      const nodeIdsStr = nodeIds.map(id => id.toString());
+      const nodeIdsStr = nodeIds.map((id) => id.toString());
       setTspPath(nodeIdsStr);
-      alert("TSP computed successfully!");
-    } catch (error) {
-      console.error("Error computing TSP:", error);
-      alert("Failed to compute TSP");
+
+      // Load and parse the uploaded files to display on map
+      const planText = await planFile.text();
+      const requestText = await requestFile.text();
+      await handleLoadMap(planText);
+      await handleLoadDelivery(requestText);
+
+      alert(`TSP computed successfully!\nPath length: ${nodeIds.length} nodes`);
+    } catch (error: any) {
+      console.error("Error uploading and computing TSP:", error);
+      alert(`Failed to compute TSP: ${error.message || 'Unknown error'}`);
     }
   };
 
   const handleDeleteLoadedDelivery = (index: number) => {
-    if (deliveryRequest) {
-      const updatedDeliveries = [...deliveryRequest.deliveries];
-      updatedDeliveries.splice(index, 1);
-      setDeliveryRequest({
-        ...deliveryRequest,
-        deliveries: updatedDeliveries
-      });
-    }
+    if (!deliveryRequest) return;
+    const updated = [...deliveryRequest.deliveries];
+    updated.splice(index, 1);
+    setDeliveryRequest({
+      ...deliveryRequest,
+      deliveries: updated,
+    });
   };
 
   const handleDeleteCustomDelivery = (index: number) => {
-    // Each delivery consists of 2 stops (pickup + delivery)
-    // index 0 corresponds to stops 0 and 1
-    // index 1 corresponds to stops 2 and 3
-    const updatedStops = [...customStops];
-    updatedStops.splice(index * 2, 2);
-    setCustomStops(updatedStops);
+    const updated = [...customStops];
+    // each custom delivery = 2 stops (pickup + delivery)
+    updated.splice(index * 2, 2);
+    setCustomStops(updated);
   };
 
   // Helper to determine current step for ControlPanel
@@ -413,8 +445,6 @@ function App() {
           setPickupDuration={setPickupDuration}
           deliveryDuration={deliveryDuration}
           setDeliveryDuration={setDeliveryDuration}
-          onSetWarehouse={handleSetWarehouse}
-          isSettingWarehouse={clickMode === 'setWarehouse'}
           onStartCollectNodes={handleStartCollectNodes}
           onStopCollectNodes={handleStopCollectNodes}
           onSaveClickedNodes={handleSaveClickedNodes}
@@ -422,6 +452,7 @@ function App() {
           isCollectingNodes={clickMode === 'collectNodes'}
           clickedNodesCount={clickedNodes.length}
           onComputeTsp={handleComputeTsp}
+          onUploadAndComputeTsp={handleUploadAndComputeTsp}
         />
         
         <div className="info-panel">
