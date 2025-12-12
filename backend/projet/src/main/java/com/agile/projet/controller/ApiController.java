@@ -152,14 +152,10 @@ public class ApiController {
             log.info("Computing shortest paths...");
             controller.computeShortestPaths();
 
-            log.info("Finding best path...");
-            var tournee = controller.findBestPath();
-            log.info("TSP computed successfully, total cost: {}", tournee.getTotalCost());
+            List<Tournee> tournees =  controller.findBestPathsForNDrivers(4);
+            List<List<Long>> paths= controller.buildFullPathNTournées(tournees);
 
-            List<Long> path = controller.buildFullPath();
-            log.info("Built full path with {} nodes", path.size());
-
-            return ResponseEntity.ok(path);
+            return ResponseEntity.ok(paths.get(0));
         } catch (Exception e) {
             log.error("Failed to compute TSP: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError().body(null);

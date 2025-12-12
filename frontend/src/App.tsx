@@ -1,18 +1,40 @@
-import { useState, Suspense, lazy } from 'react'; // Import Suspense and lazy
-import './App.css';
-const MapComponent = lazy(() => import('./components/MapComponent'));
-import ControlPanel from './components/ControlPanel';
-import { parseMapXML, parseDeliveryXML, findNearestNode, generateDeliveryXML } from './utils/xmlParser';
-import type { MapData, DeliveryRequest, CustomStop, Node, TspPath } from './types';
+import { useState, Suspense, lazy } from "react"; // Import Suspense and lazy
+import "./App.css";
+const MapComponent = lazy(() => import("./components/MapComponent"));
+import ControlPanel from "./components/ControlPanel";
+import {
+  parseMapXML,
+  parseDeliveryXML,
+  findNearestNode,
+  generateDeliveryXML,
+} from "./utils/xmlParser";
+import type {
+  MapData,
+  DeliveryRequest,
+  CustomStop,
+  Node,
+  TspPath,
+} from "./types";
 
-type ClickMode = 'default' | 'setUserLocation' | 'selectPickup' | 'selectDelivery' | 'reviewNewDelivery' | 'setWarehouse' | 'collectNodes';
+type ClickMode =
+  | "default"
+  | "setUserLocation"
+  | "selectPickup"
+  | "selectDelivery"
+  | "reviewNewDelivery"
+  | "setWarehouse"
+  | "collectNodes";
 
 function App() {
   const [mapData, setMapData] = useState<MapData | null>(null);
-  const [deliveryRequest, setDeliveryRequest] = useState<DeliveryRequest | null>(null);
+  const [deliveryRequest, setDeliveryRequest] =
+    useState<DeliveryRequest | null>(null);
   const [courierCount, setCourierCount] = useState<number>(1);
-  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [clickMode, setClickMode] = useState<ClickMode>('default');
+  const [userLocation, setUserLocation] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
+  const [clickMode, setClickMode] = useState<ClickMode>("default");
   const [clickedNodes, setClickedNodes] = useState<Node[]>([]);
   const [tspPath, setTspPath] = useState<string[]>([]);
 
@@ -20,9 +42,8 @@ function App() {
   const [customStops, setCustomStops] = useState<CustomStop[]>([]);
   const [tempPickupNode, setTempPickupNode] = useState<Node | null>(null);
   const [tempDeliveryNode, setTempDeliveryNode] = useState<Node | null>(null);
-  const [pickupDuration, setPickupDuration] = useState<number | string>('');
-  const [deliveryDuration, setDeliveryDuration] = useState<number | string>('');
-
+  const [pickupDuration, setPickupDuration] = useState<number | string>("");
+  const [deliveryDuration, setDeliveryDuration] = useState<number | string>("");
 
   const handleLoadMap = async (xmlText: string) => {
     try {
@@ -50,30 +71,36 @@ function App() {
         (position) => {
           setUserLocation({
             lat: position.coords.latitude,
-            lng: position.coords.longitude
+            lng: position.coords.longitude,
           });
         },
         (error) => {
           console.error("Error getting location", error);
-          alert("Could not get your location. Please click on the map to set it.");
-          setClickMode('setUserLocation');
+          alert(
+            "Could not get your location. Please click on the map to set it."
+          );
+          setClickMode("setUserLocation");
         }
       );
     } else {
-      alert("Geolocation is not supported by this browser. Please click on the map to set it.");
-      setClickMode('setUserLocation');
+      alert(
+        "Geolocation is not supported by this browser. Please click on the map to set it."
+      );
+      setClickMode("setUserLocation");
     }
   };
 
   const handleMapClick = (lat: number, lng: number) => {
-    if (clickMode === 'setUserLocation') {
+    if (clickMode === "setUserLocation") {
       setUserLocation({ lat, lng });
-      setClickMode('default');
-    } else if (clickMode === 'collectNodes') {
+      setClickMode("default");
+    } else if (clickMode === "collectNodes") {
       if (mapData) {
         const nearestNode = findNearestNode(mapData, lat, lng);
         if (nearestNode) {
-          const alreadyExists = clickedNodes.some(node => node.id === nearestNode.id);
+          const alreadyExists = clickedNodes.some(
+            (node) => node.id === nearestNode.id
+          );
           if (!alreadyExists) {
             setClickedNodes([...clickedNodes, nearestNode]);
           } else {
@@ -85,50 +112,51 @@ function App() {
       } else {
         alert("Please load a map first.");
       }
-    } else if (clickMode === 'selectPickup') {
+    } else if (clickMode === "selectPickup") {
       if (mapData) {
         const nearestNode = findNearestNode(mapData, lat, lng);
         if (nearestNode) {
           setTempPickupNode(nearestNode);
-          setClickMode('selectDelivery');
+          setClickMode("selectDelivery");
         } else {
           alert("Could not find a nearby node on the map.");
         }
       } else {
         alert("Please load a map first.");
-        setClickMode('default');
+        setClickMode("default");
       }
-    } else if (clickMode === 'selectDelivery') {
+    } else if (clickMode === "selectDelivery") {
       if (mapData && tempPickupNode) {
         const nearestNode = findNearestNode(mapData, lat, lng);
         if (nearestNode) {
           setTempDeliveryNode(nearestNode);
-          setClickMode('reviewNewDelivery');
+          setClickMode("reviewNewDelivery");
         } else {
           alert("Could not find a nearby node on the map.");
         }
       }
-    } else if (clickMode === 'setWarehouse') {
+    } else if (clickMode === "setWarehouse") {
       if (mapData) {
         const nearestNode = findNearestNode(mapData, lat, lng);
         if (nearestNode) {
           const newWarehouse = {
             nodeId: nearestNode.id,
-            departureTime: deliveryRequest?.warehouse?.departureTime || "08:00:00"
+            departureTime:
+              deliveryRequest?.warehouse?.departureTime || "08:00:00",
           };
 
           if (deliveryRequest) {
             setDeliveryRequest({
               ...deliveryRequest,
-              warehouse: newWarehouse
+              warehouse: newWarehouse,
             });
           } else {
             setDeliveryRequest({
               warehouse: newWarehouse,
-              deliveries: []
+              deliveries: [],
             });
           }
-          setClickMode('default');
+          setClickMode("default");
         } else {
           alert("Could not find a nearby node on the map.");
         }
@@ -144,22 +172,22 @@ function App() {
         nodeId: tempPickupNode.id,
         latitude: tempPickupNode.latitude,
         longitude: tempPickupNode.longitude,
-        type: 'pickup',
-        duration: Number(pickupDuration) || 0
+        type: "pickup",
+        duration: Number(pickupDuration) || 0,
       };
       const newDelivery: CustomStop = {
         nodeId: tempDeliveryNode.id,
         latitude: tempDeliveryNode.latitude,
         longitude: tempDeliveryNode.longitude,
-        type: 'delivery',
-        duration: Number(deliveryDuration) || 0
+        type: "delivery",
+        duration: Number(deliveryDuration) || 0,
       };
       setCustomStops([...customStops, newPickup, newDelivery]);
       setTempPickupNode(null);
       setTempDeliveryNode(null);
-      setPickupDuration('');
-      setDeliveryDuration('');
-      setClickMode('default');
+      setPickupDuration("");
+      setDeliveryDuration("");
+      setClickMode("default");
     }
   };
 
@@ -169,7 +197,10 @@ function App() {
       return;
     }
 
-    const filename = prompt("Enter filename to save (e.g., myRequest.xml):", "newRequest.xml");
+    const filename = prompt(
+      "Enter filename to save (e.g., myRequest.xml):",
+      "newRequest.xml"
+    );
     if (!filename) return;
 
     const xmlContent = generateDeliveryXML(deliveryRequest, customStops);
@@ -187,7 +218,9 @@ function App() {
 
       if (response.ok) {
         const result = await response.json();
-        alert(`File saved successfully!\n\nFilename: ${result.filename}\nPath: ${result.path}`);
+        alert(
+          `File saved successfully!\n\nFilename: ${result.filename}\nPath: ${result.path}`
+        );
       } else {
         const errorText = await response.text();
         console.error("Upload failed:", errorText);
@@ -204,11 +237,11 @@ function App() {
       alert("Please load a map first.");
       return;
     }
-    setClickMode('selectPickup');
+    setClickMode("selectPickup");
     setTempPickupNode(null);
     setTempDeliveryNode(null);
-    setPickupDuration('');
-    setDeliveryDuration('');
+    setPickupDuration("");
+    setDeliveryDuration("");
   };
 
   const handleSetWarehouse = () => {
@@ -216,7 +249,7 @@ function App() {
       alert("Please load a map first.");
       return;
     }
-    setClickMode('setWarehouse');
+    setClickMode("setWarehouse");
   };
 
   const handleStartCollectNodes = () => {
@@ -224,11 +257,11 @@ function App() {
       alert("Please load a map first.");
       return;
     }
-    setClickMode('collectNodes');
+    setClickMode("collectNodes");
   };
 
   const handleStopCollectNodes = () => {
-    setClickMode('default');
+    setClickMode("default");
   };
 
   const handleClearClickedNodes = () => {
@@ -241,12 +274,15 @@ function App() {
       return;
     }
 
-    const filename = prompt("Enter filename to save (e.g., clickedNodes.xml):", "clickedNodes.xml");
+    const filename = prompt(
+      "Enter filename to save (e.g., clickedNodes.xml):",
+      "clickedNodes.xml"
+    );
     if (!filename) return;
 
     // Générer le XML avec les noeuds cliqués
     let xmlContent = '<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n';
-    xmlContent += '<demandeDeLivraisons>\n';
+    xmlContent += "<demandeDeLivraisons>\n";
 
     // Premier noeud = entrepot par défaut
     xmlContent += `    <entrepot adresse="${clickedNodes[0].id}" heureDepart="8:0:0"/>\n`;
@@ -254,11 +290,15 @@ function App() {
     // Les autres noeuds en paires (pickup -> delivery)
     for (let i = 1; i < clickedNodes.length; i += 2) {
       if (i + 1 < clickedNodes.length) {
-        xmlContent += `    <livraison adresseEnlevement="${clickedNodes[i].id}" adresseLivraison="${clickedNodes[i + 1].id}" dureeEnlevement="180" dureeLivraison="240"/>\n`;
+        xmlContent += `    <livraison adresseEnlevement="${
+          clickedNodes[i].id
+        }" adresseLivraison="${
+          clickedNodes[i + 1].id
+        }" dureeEnlevement="180" dureeLivraison="240"/>\n`;
       }
     }
 
-    xmlContent += '</demandeDeLivraisons>\n';
+    xmlContent += "</demandeDeLivraisons>\n";
 
     const blob = new Blob([xmlContent], { type: "text/xml" });
     const file = new File([blob], filename, { type: "text/xml" });
@@ -274,7 +314,9 @@ function App() {
 
       if (response.ok) {
         const result = await response.json();
-        alert(`File saved successfully!\n\nFilename: ${result.filename}\nPath: ${result.path}`);
+        alert(
+          `File saved successfully!\n\nFilename: ${result.filename}\nPath: ${result.path}`
+        );
       } else {
         const errorText = await response.text();
         console.error("Upload failed:", errorText);
@@ -294,23 +336,29 @@ function App() {
 
     try {
       const response = await fetch(
-        `http://localhost:8080/get-tsp?planName=${encodeURIComponent(planName)}&requestName=${encodeURIComponent(requestName)}`
+        `http://localhost:8080/get-tsp?planName=${encodeURIComponent(
+          planName
+        )}&requestName=${encodeURIComponent(requestName)}`
       );
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(errorText || "Failed to fetch TSP");
       }
       const nodeIds: number[] = await response.json();
+      console.log("TSP node IDs:", nodeIds);
       const nodeIdsStr = nodeIds.map((id) => id.toString());
       setTspPath(nodeIdsStr);
       alert("TSP computed successfully!");
     } catch (error: any) {
       console.error("Error computing TSP:", error);
-      alert(`Failed to compute TSP: ${error.message || 'Unknown error'}`);
+      alert(`Failed to compute TSP: ${error.message || "Unknown error"}`);
     }
   };
 
-  const handleUploadAndComputeTsp = async (planFile: File, requestFile: File) => {
+  const handleUploadAndComputeTsp = async (
+    planFile: File,
+    requestFile: File
+  ) => {
     try {
       const formData = new FormData();
       formData.append("plan", planFile);
@@ -339,7 +387,7 @@ function App() {
       alert(`TSP computed successfully!\nPath length: ${nodeIds.length} nodes`);
     } catch (error: any) {
       console.error("Error uploading and computing TSP:", error);
-      alert(`Failed to compute TSP: ${error.message || 'Unknown error'}`);
+      alert(`Failed to compute TSP: ${error.message || "Unknown error"}`);
     }
   };
 
@@ -362,10 +410,10 @@ function App() {
 
   // Helper to determine current step for ControlPanel
   const getDeliveryCreationStep = () => {
-    if (clickMode === 'selectPickup') return 'select-pickup';
-    if (clickMode === 'selectDelivery') return 'select-delivery';
-    if (clickMode === 'reviewNewDelivery') return 'review';
-    return 'idle';
+    if (clickMode === "selectPickup") return "select-pickup";
+    if (clickMode === "selectDelivery") return "select-delivery";
+    if (clickMode === "reviewNewDelivery") return "review";
+    return "idle";
   };
 
   // Combine custom stops with temp pickup for display
@@ -375,7 +423,7 @@ function App() {
       nodeId: tempPickupNode.id,
       latitude: tempPickupNode.latitude,
       longitude: tempPickupNode.longitude,
-      type: 'pickup'
+      type: "pickup",
     });
   }
   if (tempDeliveryNode) {
@@ -383,7 +431,7 @@ function App() {
       nodeId: tempDeliveryNode.id,
       latitude: tempDeliveryNode.latitude,
       longitude: tempDeliveryNode.longitude,
-      type: 'delivery'
+      type: "delivery",
     });
   }
   // Ajouter les noeuds cliqués
@@ -392,7 +440,7 @@ function App() {
       nodeId: node.id,
       latitude: node.latitude,
       longitude: node.longitude,
-      type: idx === 0 ? 'warehouse' : (idx % 2 === 1 ? 'pickup' : 'delivery')
+      type: idx === 0 ? "warehouse" : idx % 2 === 1 ? "pickup" : "delivery",
     });
   });
 
@@ -401,12 +449,14 @@ function App() {
       <header>
         <h1>DeliverIF</h1>
       </header>
-      
+
       <main>
         <div className="map-wrapper">
-          <Suspense fallback={<div className="loading-map">Loading Map...</div>}>
-            <MapComponent 
-              mapData={mapData} 
+          <Suspense
+            fallback={<div className="loading-map">Loading Map...</div>}
+          >
+            <MapComponent
+              mapData={mapData}
               deliveryRequest={deliveryRequest}
               userLocation={userLocation}
               customStops={displayStops}
@@ -414,24 +464,33 @@ function App() {
               tspPath={tspPath}
             />
           </Suspense>
-          {clickMode !== 'default' && (
+          {clickMode !== "default" && (
             <div className="mode-indicator">
-              {clickMode === 'setUserLocation' ? 'Click on map to set your location' : 
-               clickMode === 'collectNodes' ? 'Click on map nodes to collect them (1st=warehouse, then pairs pickup->delivery)' :
-               clickMode === 'selectPickup' ? 'Click on map to set Pickup point' :
-               clickMode === 'selectDelivery' ? 'Click on map to set Delivery point' :
-               clickMode === 'setWarehouse' ? 'Click on map to set Warehouse location' :
-               'Review points and click Confirm Add'}
-              <button onClick={() => {
-                setClickMode('default');
-                setTempPickupNode(null);
-                setTempDeliveryNode(null);
-              }}>Cancel</button>
+              {clickMode === "setUserLocation"
+                ? "Click on map to set your location"
+                : clickMode === "collectNodes"
+                ? "Click on map nodes to collect them (1st=warehouse, then pairs pickup->delivery)"
+                : clickMode === "selectPickup"
+                ? "Click on map to set Pickup point"
+                : clickMode === "selectDelivery"
+                ? "Click on map to set Delivery point"
+                : clickMode === "setWarehouse"
+                ? "Click on map to set Warehouse location"
+                : "Review points and click Confirm Add"}
+              <button
+                onClick={() => {
+                  setClickMode("default");
+                  setTempPickupNode(null);
+                  setTempDeliveryNode(null);
+                }}
+              >
+                Cancel
+              </button>
             </div>
           )}
         </div>
 
-        <ControlPanel 
+        <ControlPanel
           onLoadMap={handleLoadMap}
           onLoadDelivery={handleLoadDelivery}
           courierCount={courierCount}
@@ -449,12 +508,12 @@ function App() {
           onStopCollectNodes={handleStopCollectNodes}
           onSaveClickedNodes={handleSaveClickedNodes}
           onClearClickedNodes={handleClearClickedNodes}
-          isCollectingNodes={clickMode === 'collectNodes'}
+          isCollectingNodes={clickMode === "collectNodes"}
           clickedNodesCount={clickedNodes.length}
           onComputeTsp={handleComputeTsp}
           onUploadAndComputeTsp={handleUploadAndComputeTsp}
         />
-        
+
         <div className="info-panel">
           <h3>Current Delivery Points</h3>
           <div className="delivery-list">
@@ -465,7 +524,12 @@ function App() {
                 <ul>
                   {clickedNodes.map((node, i) => (
                     <li key={`clicked-${i}`}>
-                      {i === 0 ? '🏭 Warehouse' : (i % 2 === 1 ? '📦 Pickup' : '🏠 Delivery')}: {node.id}
+                      {i === 0
+                        ? "🏭 Warehouse"
+                        : i % 2 === 1
+                        ? "📦 Pickup"
+                        : "🏠 Delivery"}
+                      : {node.id}
                     </li>
                   ))}
                 </ul>
@@ -478,7 +542,8 @@ function App() {
                 <h4>Warehouse</h4>
                 <ul>
                   <li>
-                    Node ID: {deliveryRequest.warehouse.nodeId} (Departure: {deliveryRequest.warehouse.departureTime})
+                    Node ID: {deliveryRequest.warehouse.nodeId} (Departure:{" "}
+                    {deliveryRequest.warehouse.departureTime})
                   </li>
                 </ul>
               </div>
@@ -490,19 +555,28 @@ function App() {
                 <h4>Loaded Deliveries</h4>
                 <ul>
                   {deliveryRequest.deliveries.map((d, i) => (
-                    <li key={`loaded-${i}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <li
+                      key={`loaded-${i}`}
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
                       <span>
-                        Delivery {i + 1}: Pickup ({d.pickupNodeId}, {d.pickupDuration}s) {'->'} Delivery ({d.deliveryNodeId}, {d.deliveryDuration}s)
+                        Delivery {i + 1}: Pickup ({d.pickupNodeId},{" "}
+                        {d.pickupDuration}s) {"->"} Delivery ({d.deliveryNodeId}
+                        , {d.deliveryDuration}s)
                       </span>
-                      <button 
+                      <button
                         onClick={() => handleDeleteLoadedDelivery(i)}
-                        style={{ 
-                          marginLeft: '10px', 
-                          padding: '2px 8px', 
-                          backgroundColor: '#fca5a5', 
-                          border: '2px solid black',
-                          cursor: 'pointer',
-                          fontSize: '0.8rem'
+                        style={{
+                          marginLeft: "10px",
+                          padding: "2px 8px",
+                          backgroundColor: "#fca5a5",
+                          border: "2px solid black",
+                          cursor: "pointer",
+                          fontSize: "0.8rem",
                         }}
                       >
                         X
@@ -518,23 +592,35 @@ function App() {
               <div className="delivery-group">
                 <h4>New Deliveries</h4>
                 <ul>
-                  {Array.from({ length: Math.ceil(customStops.length / 2) }).map((_, i) => {
+                  {Array.from({
+                    length: Math.ceil(customStops.length / 2),
+                  }).map((_, i) => {
                     const pickup = customStops[i * 2];
                     const delivery = customStops[i * 2 + 1];
                     return (
-                      <li key={`custom-${i}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <li
+                        key={`custom-${i}`}
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                        }}
+                      >
                         <span>
-                          Delivery {i + 1}: Pickup ({pickup.nodeId}, {pickup.duration || 0}s) {'->'} Delivery ({delivery ? delivery.nodeId : '...'}, {delivery?.duration || 0}s)
+                          Delivery {i + 1}: Pickup ({pickup.nodeId},{" "}
+                          {pickup.duration || 0}s) {"->"} Delivery (
+                          {delivery ? delivery.nodeId : "..."},{" "}
+                          {delivery?.duration || 0}s)
                         </span>
-                        <button 
+                        <button
                           onClick={() => handleDeleteCustomDelivery(i)}
-                          style={{ 
-                            marginLeft: '10px', 
-                            padding: '2px 8px', 
-                            backgroundColor: '#fca5a5', 
-                            border: '2px solid black',
-                            cursor: 'pointer',
-                            fontSize: '0.8rem'
+                          style={{
+                            marginLeft: "10px",
+                            padding: "2px 8px",
+                            backgroundColor: "#fca5a5",
+                            border: "2px solid black",
+                            cursor: "pointer",
+                            fontSize: "0.8rem",
                           }}
                         >
                           X
@@ -545,9 +631,11 @@ function App() {
                 </ul>
               </div>
             )}
-            
+
             {!deliveryRequest && customStops.length === 0 && (
-              <p style={{ color: '#6b7280', fontStyle: 'italic' }}>No deliveries loaded or added yet.</p>
+              <p style={{ color: "#6b7280", fontStyle: "italic" }}>
+                No deliveries loaded or added yet.
+              </p>
             )}
           </div>
         </div>
