@@ -226,44 +226,64 @@ const MapComponent: React.FC<MapComponentProps> = ({
               );
             })}
 
-            {/* Numbered markers at each stop */}
-            {tspPath.map((nodeId, idx) => {
-              const node = mapData.nodes.get(nodeId);
-              if (!node) return null;
+            {/* Numbers on pickup and delivery points in order of visit (not warehouse) */}
+            {deliveryRequest && (() => {
+              // Build a map of nodeId -> visit order (excluding warehouse which is first and last)
+              // Skip first node (warehouse start) and find pickup/delivery nodes in visit order
+              let visitOrder = 1;
+              const nodeVisitOrder: { [key: string]: { order: number; type: string; deliveryIdx: number } } = {};
 
-              const numberIcon = L.divIcon({
-                html: `<div style="
-                  background: ${courierColor};
-                  color: white;
-                  border: 3px solid #1f2937;
-                  border-radius: 50%;
-                  width: 28px;
-                  height: 28px;
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  font-weight: bold;
-                  font-size: 14px;
-                  box-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-                ">${idx + 1}</div>`,
-                className: 'number-marker',
-                iconSize: [28, 28],
-                iconAnchor: [14, 14]
+              // Go through path and assign visit order to pickup/delivery nodes only
+              tspPath.forEach((nodeId, pathIdx) => {
+                // Skip first node (warehouse) and last node (return to warehouse)
+                if (pathIdx === 0 || pathIdx === tspPath.length - 1) return;
+
+                // Find which delivery this node belongs to
+                deliveryRequest.deliveries.forEach((delivery, deliveryIdx) => {
+                  if (delivery.pickupNodeId === nodeId) {
+                    nodeVisitOrder[nodeId] = { order: visitOrder++, type: 'P', deliveryIdx: deliveryIdx + 1 };
+                  } else if (delivery.deliveryNodeId === nodeId) {
+                    nodeVisitOrder[nodeId] = { order: visitOrder++, type: 'D', deliveryIdx: deliveryIdx + 1 };
+                  }
+                });
               });
 
-              return (
-                <Marker
-                  key={`number-${courierIdx}-${idx}`}
-                  position={[node.latitude, node.longitude]}
-                  icon={numberIcon}
-                >
-                  <Popup>
-                    <strong>Courier {courierIdx + 1} - Stop {idx + 1}</strong><br/>
-                    Node ID: {nodeId}
-                  </Popup>
-                </Marker>
-              );
-            })}
+              // Render markers for each node in the visit order map
+              return Object.entries(nodeVisitOrder).map(([nodeId, info]) => {
+                const node = mapData.nodes.get(nodeId);
+                if (!node) return null;
+
+                return (
+                  <Marker
+                    key={`visit-${courierIdx}-${nodeId}`}
+                    position={[node.latitude, node.longitude]}
+                    icon={L.divIcon({
+                      html: `<div style="
+                        background: ${courierColor};
+                        color: white;
+                        border: 2px solid #1f2937;
+                        border-radius: 4px;
+                        padding: 2px 6px;
+                        font-weight: bold;
+                        font-size: 12px;
+                        box-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+                        white-space: nowrap;
+                      ">${info.type}${info.deliveryIdx}(${info.order})</div>`,
+                      className: 'visit-order-marker',
+                      iconSize: [50, 20],
+                      iconAnchor: [25, 10]
+                    })}
+                    zIndexOffset={500}
+                  >
+                    <Popup>
+                      <strong>Courier {courierIdx + 1}</strong><br/>
+                      {info.type === 'P' ? 'Pickup' : 'Delivery'} {info.deliveryIdx}<br/>
+                      Visit order: {info.order}
+                    </Popup>
+                  </Marker>
+                );
+              });
+            })()}
           </div>
         );
       })}
