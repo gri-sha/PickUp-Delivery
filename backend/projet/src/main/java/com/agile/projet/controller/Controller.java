@@ -12,7 +12,7 @@ import java.util.List;
 
 @Component
 public class Controller {
-    private final PickupDeliveryModel pickupDeliveryModel = new PickupDeliveryModel();
+    public final PickupDeliveryModel pickupDeliveryModel = new PickupDeliveryModel();
     private Tournee tournee;
 
     public Controller() throws Exception {

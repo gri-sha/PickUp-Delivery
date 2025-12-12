@@ -109,6 +109,63 @@ public class ApiController {
         }
     }
 
+    // Simple GET endpoint that accepts plan and request names as parameters
+    @GetMapping("/get-tsp")
+    public ResponseEntity<List<Long>> getTspSimple(
+            @RequestParam(required = false) String planName,
+            @RequestParam(required = false) String requestName
+    ) {
+        try {
+            log.info("GET /get-tsp called with planName={}, requestName={}", planName, requestName);
+
+            // If parameters provided, load them
+            if (planName != null && !planName.isEmpty()) {
+                try {
+                    controller.createPlan("plans/" + planName);
+                    log.info("Plan loaded: {}", planName);
+                } catch (Exception e) {
+                    log.error("Failed to load plan {}: {}", planName, e.getMessage(), e);
+                    return ResponseEntity.badRequest().body(null);
+                }
+            }
+
+            if (requestName != null && !requestName.isEmpty()) {
+                try {
+                    controller.createDeliveryFromXml("requests/" + requestName);
+                    log.info("Delivery request loaded: {}", requestName);
+                } catch (Exception e) {
+                    log.error("Failed to load delivery request {}: {}", requestName, e.getMessage(), e);
+                    return ResponseEntity.badRequest().body(null);
+                }
+            }
+
+            // Check if plan and delivery are loaded
+            if (controller.pickupDeliveryModel.plan == null) {
+                log.warn("No plan loaded - cannot compute TSP");
+                return ResponseEntity.badRequest().body(null);
+            }
+            if (controller.pickupDeliveryModel.demandeDelivery == null) {
+                log.warn("No delivery request loaded - cannot compute TSP");
+                return ResponseEntity.badRequest().body(null);
+            }
+
+            log.info("Computing shortest paths...");
+            controller.computeShortestPaths();
+
+            log.info("Finding best path...");
+            var tournee = controller.findBestPath();
+            log.info("TSP computed successfully, total cost: {}", tournee.getTotalCost());
+
+            List<Long> path = controller.buildFullPath();
+            log.info("Built full path with {} nodes", path.size());
+
+            return ResponseEntity.ok(path);
+        } catch (Exception e) {
+            log.error("Failed to compute TSP: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().body(null);
+        }
+    }
+
     @GetMapping("/get-tsp2") //if a request goes to the root of our web site, it will be called (argument "/")
     public List<Long>  getTsp() throws Exception {
         controller.createPlan("grandPlan.xml");
@@ -192,33 +249,71 @@ public class ApiController {
     }
     @GetMapping("/plans/{filename}")
     public ResponseEntity<String> getPlanFile(@PathVariable String filename) throws IOException {
-        System.err.println("Fetching plan file: " + filename);
+        log.info("Fetching plan file: {}", filename);
 
-    // Spring Boot way : read from src/main/resources/plans/
-        ClassPathResource resource = new ClassPathResource(filename);
+        // Spring Boot way : read from src/main/resources/plans/
+        ClassPathResource resource = new ClassPathResource("plans/" + filename);
 
+        if (!resource.exists()) {
+            log.error("File not found in resources/plans/: {}", filename);
+            return ResponseEntity.notFound().build();
+        }
 
-    if (!resource.exists()) {
-        System.err.println("File not found in resources/plans/");
-        return ResponseEntity.notFound().build();
+        String content = new String(resource.getInputStream().readAllBytes());
+
+        return ResponseEntity.ok(content);
     }
 
-    String content = new String(resource.getInputStream().readAllBytes());
-    return ResponseEntity.ok(content);
-    }
     @GetMapping("/requests/{filename}")
     public ResponseEntity<String> getRequestFile(@PathVariable String filename) throws IOException {
-        System.err.println("Fetching request file: " + filename);
-    // Spring Boot way : read from src/main/resources/requests/
-        ClassPathResource resource = new ClassPathResource("requests/" + filename); 
-    if (!resource.exists()) {
-        System.err.println("File not found in resources/requests/");
-        return ResponseEntity.notFound().build();
+        log.info("Fetching request file: {}", filename);
+
+        // Spring Boot way : read from src/main/resources/requests/
+        ClassPathResource resource = new ClassPathResource("requests/" + filename);
+
+        if (!resource.exists()) {
+            log.error("File not found in resources/requests/: {}", filename);
+            return ResponseEntity.notFound().build();
+        }
+
+        String content = new String(resource.getInputStream().readAllBytes());
+
+        return ResponseEntity.ok(content);
     }
-    String content = new String(resource.getInputStream().readAllBytes());
-    return ResponseEntity.ok(content);  
-}
-    
+
+    @PostMapping(path = "/upload-request", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Map<String, String>> uploadRequest(@RequestPart("file") MultipartFile file) {
+        try {
+            if (file == null || file.isEmpty()) {
+                log.error("No file provided for upload");
+                return ResponseEntity.badRequest().build();
+            }
+
+            log.info("Uploading request file: {}", file.getOriginalFilename());
+
+            // Save to src/main/resources/requests/
+            Path requestsDir = Paths.get("src/main/resources/requests");
+            if (!Files.exists(requestsDir)) {
+                Files.createDirectories(requestsDir);
+            }
+
+            String filename = file.getOriginalFilename();
+            Path targetPath = requestsDir.resolve(filename);
+            Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+
+            log.info("Request file saved to: {}", targetPath.toAbsolutePath());
+
+            Map<String, String> response = new HashMap<>();
+            response.put("filename", filename);
+            response.put("path", targetPath.toAbsolutePath().toString());
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Failed to upload request file: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
 
 
     

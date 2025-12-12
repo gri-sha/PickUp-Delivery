@@ -1,9 +1,9 @@
 import { useEffect } from 'react';
-import { MapContainer, TileLayer, Polyline, Marker, Popup, useMap, useMapEvents} from 'react-leaflet';
+import { MapContainer, TileLayer, Polyline, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { Warehouse, Package, MapPin, User} from 'lucide-react';
+import { Warehouse, Package, MapPin, User } from 'lucide-react';
 import type { MapData, DeliveryRequest, CustomStop } from '../types';
 
 // Helper to create DivIcon from Lucide component
