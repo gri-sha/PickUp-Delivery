@@ -180,7 +180,7 @@ public class ApiController {
             }
             log.info("Number of deliveries: {}, using {} couriers", nbDeliveries, nbCouriers);
 
-            List<Tournee> tournees = controller.findBestPathsForNDrivers(nbCouriers);
+            List<Tournee> tournees =  controller.findBalancedPathsForNDrivers(2, 4.0, 1 * 3600);
             List<List<Long>> paths = controller.buildFullPathNTournées(tournees);
 
             // Build response with paths and courier count
@@ -237,11 +237,28 @@ public class ApiController {
 
         return controller.buildFullPathNTournées(tournees);
 
+    }
+
+    @GetMapping("/get-tsp4") //if a request goes to the root of our web site, it will be called (argument "/")
+    public List<List<Long>>  getTsp4() throws Exception {
+        controller.createPlan("grandPlan.xml");
+        controller.createDeliveryFromXml("demandeGrand7.xml");
+        controller.computeShortestPaths();
+        //controller.findBestPath();
 
 
+        //controller.solveTwoDriverTspExample();
+        List<Tournee> tournees =  controller.findBalancedPathsForNDrivers(2, 4.0, 1 * 3600);
+        //List<Long> tournee1 = controller.buildFullPathArgument(tournees.get(0));
+        //List<Long> tournee2 = controller.buildFullPathArgument(tournees.get(1));
+        //System.out.println("Tournee 1: " + tournee1);
+        //System.out.println("Tournee 2: " + tournee2);
+
+        return controller.buildFullPathNTournées(tournees);
 
 
     }
+
 
 
 

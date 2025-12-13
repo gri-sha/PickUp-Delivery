@@ -215,18 +215,6 @@ public class Controller {
     }
 
 
-    public void solveTwoDriverTspExample() {
-        double speed = 15000.0 / 3600.0;
-        double maxDurationSec = 6000.0; // 1 heure
-
-        TwoDriverTspSolver.TwoDriverSolution sol = TwoDriverTspSolver.solveForTwoDrivers(pickupDeliveryModel, maxDurationSec, speed);
-        List<Long> driver1Route = sol.getDriver1PathIds();
-        List<Long> driver2Route = sol.getDriver2PathIds();
-        System.out.println("Driver 1 route: " + driver1Route);
-        System.out.println("Driver 2 route: " + driver2Route);
-        double t1Sec = sol.getDriver1DurationSeconds();
-        double t2Sec = sol.getDriver2DurationSeconds();
-    }
 
     public List<Tournee> findBestPathsForTwoDrivers() {
 
@@ -257,6 +245,25 @@ public class Controller {
 
         for (var d : sol.getDrivers()) {
             tournees.add(buildTourneeFromIdList(d.getPathIds()));
+        }
+
+        printNDriverTournees(tournees);
+
+        return tournees;
+    }
+
+    public List<Tournee> findBalancedPathsForNDrivers(int nbDrivers, double speed, double maxDurationSec) {
+
+        var sol = NDriverTspBalancer2.solve(pickupDeliveryModel, nbDrivers, speed, maxDurationSec);
+
+        List<Tournee> tournees = new ArrayList<>();
+
+        for (var tour : sol.getTours()) {
+            System.out.println("Driver " + tour.getDriverIndex()
+                    + " total=" + tour.getTotalTimeSeconds()
+                    + " travel=" + tour.getTravelTimeSeconds()
+                    + " service=" + tour.getServiceTimeSeconds());
+            tournees.add(buildTourneeFromIdList(tour.getPathIds()));
         }
 
         printNDriverTournees(tournees);
