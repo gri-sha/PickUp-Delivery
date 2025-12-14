@@ -135,17 +135,9 @@ public class NDriverTspBalancer2 {
         int d = 1;
         while (d <= nDrivers || !remaining.isEmpty()) {
 
-            // Si on a déjà tout assigné :
-            // - on complète avec des tournées vides jusqu'à nDrivers (comportement inchangé)
-            // - si on est au-delà de nDrivers, on sort.
+            // Si on a déjà tout assigné, on sort (pas de tournées vides)
             if (remaining.isEmpty()) {
-                if (d <= nDrivers) {
-                    result.add(new DriverTour(d, List.of(), 0, 0, 0, 0, List.of()));
-                    d++;
-                    continue;
-                } else {
-                    break;
-                }
+                break;
             }
 
             int k;
