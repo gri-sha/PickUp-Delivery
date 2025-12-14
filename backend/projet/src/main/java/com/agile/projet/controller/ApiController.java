@@ -166,7 +166,7 @@ public class ApiController {
             int nbDeliveries = controller.pickupDeliveryModel.demandeDelivery.getDeliveries().size();
 
             // Use new method that automatically calculates optimal courier count
-            List<Tournee> tournees = controller.findOptimalBalancedPaths(4.0, 3600);
+            List<Tournee> tournees =  controller.findBalancedPathsForNDrivers(2, 4.0, 1 * 3600);
             List<List<Long>> paths = controller.buildFullPathNTournées(tournees);
 
             // Build response with actual paths generated
