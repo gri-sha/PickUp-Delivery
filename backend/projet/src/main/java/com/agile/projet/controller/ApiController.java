@@ -100,19 +100,17 @@ public class ApiController {
             controller.createDeliveryFromXml(requestName);
             controller.computeShortestPaths();
 
-            // Calculate optimal number of couriers
             int nbDeliveries = controller.pickupDeliveryModel.demandeDelivery.getDeliveries().size();
-            int nbCouriers = Math.min(4, Math.max(1, (nbDeliveries + 2) / 3));
-            log.info("Number of deliveries: {}, using {} couriers", nbDeliveries, nbCouriers);
 
-            List<Tournee> tournees = controller.findBestPathsForNDrivers(nbCouriers);
+            // Use new method that automatically calculates optimal courier count
+            List<Tournee> tournees = controller.findOptimalBalancedPaths(4.0, 3600);
             List<List<Long>> paths = controller.buildFullPathNTournées(tournees);
 
             log.info("TSP computation completed successfully.");
 
             Map<String, Object> response = new HashMap<>();
             response.put("paths", paths);
-            response.put("nbCouriers", nbCouriers);
+            response.put("nbCouriers", paths.size()); // Actual number of couriers used
             response.put("nbDeliveries", nbDeliveries);
 
             return response;
@@ -165,29 +163,16 @@ public class ApiController {
             log.info("Computing shortest paths...");
             controller.computeShortestPaths();
 
-            // Calculate optimal number of couriers based on deliveries
             int nbDeliveries = controller.pickupDeliveryModel.demandeDelivery.getDeliveries().size();
-            // For small requests (1-2 deliveries), use 1 courier
-            // For medium requests (3-6 deliveries), use 2 couriers
-            // For larger requests, scale up to max 4 couriers
-            int nbCouriers;
-            if (nbDeliveries <= 2) {
-                nbCouriers = 1;
-            } else if (nbDeliveries <= 6) {
-                nbCouriers = 2;
-            } else {
-                nbCouriers = Math.min(4, (nbDeliveries + 2) / 3);
-            }
-            log.info("Number of deliveries: {}, using {} couriers", nbDeliveries, nbCouriers);
 
-            // Use the calculated nbCouriers instead of hardcoded 2
-            List<Tournee> tournees =  controller.findBalancedPathsForNDrivers(nbCouriers, 4.0, 1 * 3600);
+            // Use new method that automatically calculates optimal courier count
+            List<Tournee> tournees = controller.findOptimalBalancedPaths(4.0, 3600);
             List<List<Long>> paths = controller.buildFullPathNTournées(tournees);
 
-            // Build response with paths and courier count
+            // Build response with actual paths generated
             Map<String, Object> response = new HashMap<>();
             response.put("paths", paths);
-            response.put("nbCouriers", paths.size()); // Use actual number of paths generated
+            response.put("nbCouriers", paths.size()); // Actual number of couriers used
             response.put("nbDeliveries", nbDeliveries);
 
             log.info("TSP computed successfully: {} couriers, {} paths", paths.size(), paths.size());

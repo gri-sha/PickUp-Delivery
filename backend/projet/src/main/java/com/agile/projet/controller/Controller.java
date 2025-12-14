@@ -5,6 +5,8 @@ import com.agile.projet.model.Noeud;
 import com.agile.projet.model.PickupDeliveryModel;
 import com.agile.projet.model.Tournee;
 import com.agile.projet.utils.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -13,6 +15,7 @@ import java.util.List;
 
 @Component
 public class Controller {
+    private static final Logger log = LoggerFactory.getLogger(Controller.class);
     public final PickupDeliveryModel pickupDeliveryModel = new PickupDeliveryModel();
     private Tournee tournee;
 
@@ -273,6 +276,52 @@ public class Controller {
                     + " travel=" + tour.getTravelTimeSeconds()
                     + " service=" + tour.getServiceTimeSeconds());
             tournees.add(buildTourneeFromIdList(tour.getPathIds()));
+        }
+
+        printNDriverTournees(tournees);
+
+        return tournees;
+    }
+
+    /**
+     * Find optimal balanced paths with automatic courier count calculation.
+     * The number of couriers is calculated based on the number of delivery requests.
+     */
+    public List<Tournee> findOptimalBalancedPaths(double speed, double maxDurationSec) {
+        int nbDeliveries = pickupDeliveryModel.demandeDelivery.getDeliveries().size();
+
+        // Calculate optimal number of couriers based on deliveries
+        // 1-2 deliveries: 1 courier
+        // 3-4 deliveries: 2 couriers
+        // 5-6 deliveries: 2 couriers
+        // 7-9 deliveries: 3 couriers
+        // 10+ deliveries: 4 couriers (max)
+        int nbDrivers;
+        if (nbDeliveries <= 2) {
+            nbDrivers = 1;
+        } else if (nbDeliveries <= 6) {
+            nbDrivers = 2;
+        } else if (nbDeliveries <= 9) {
+            nbDrivers = 3;
+        } else {
+            nbDrivers = 4; // Maximum 4 couriers
+        }
+
+        log.info("Auto-calculated {} couriers for {} deliveries", nbDrivers, nbDeliveries);
+
+        var sol = NDriverTspBalancer2.solve(pickupDeliveryModel, nbDrivers, speed, maxDurationSec);
+
+        List<Tournee> tournees = new ArrayList<>();
+
+        // Only include non-empty tours
+        for (var tour : sol.getTours()) {
+            if (!tour.getPathIds().isEmpty() && tour.getPathIds().size() > 1) { // More than just depot
+                System.out.println("Driver " + tour.getDriverIndex()
+                        + " total=" + tour.getTotalTimeSeconds()
+                        + " travel=" + tour.getTravelTimeSeconds()
+                        + " service=" + tour.getServiceTimeSeconds());
+                tournees.add(buildTourneeFromIdList(tour.getPathIds()));
+            }
         }
 
         printNDriverTournees(tournees);
