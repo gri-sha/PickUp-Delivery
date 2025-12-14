@@ -1,5 +1,6 @@
 package com.agile.projet.controller;
 
+import com.agile.projet.model.Delivery;
 import com.agile.projet.model.Noeud;
 import com.agile.projet.model.PickupDeliveryModel;
 import com.agile.projet.model.Tournee;
@@ -96,7 +97,8 @@ public class Controller {
             long id = vertexOrder.get(idx);
 
             String type = resolveType(id);
-            String label = buildLabel(type, id);
+            // Pass k as visit index for sequential numbering (0=Depot, 1=first stop, 2=second stop...)
+            String label = buildLabel(type, id, k);
 
             double leg = 0.0;
             if (k > 0) {
@@ -204,14 +206,21 @@ public class Controller {
         return "UNKNOWN";
     }
 
-    private String buildLabel(String type, long id) {
-        return switch (type) {
-            case "DEPOT" -> "Dépôt";
-            case "PICKUP" -> "Enlèvement " + id;
-            case "DELIVERY" -> "Livraison " + id;
-            default -> "Noeud " + id;
-        };
+    private String buildLabel(String type, long id, int visitIndex) {
+        if (type.equals("DEPOT")) {
+            return "Dépôt";
+        }
 
+        // Use sequential visit index (1-based) for all stops
+        if (type.equals("PICKUP")) {
+            return "Enlèvement " + visitIndex;
+        }
+        if (type.equals("DELIVERY")) {
+            return "Livraison " + visitIndex;
+        }
+
+        // Fallback
+        return "Noeud " + id;
     }
 
 
@@ -346,7 +355,8 @@ public class Controller {
             long id = vertexOrder.get(idx);
 
             String type = resolveType(id);
-            String label = buildLabel(type, id);
+            // Pass k as visit index for sequential numbering (0=Depot, 1=first stop, 2=second stop...)
+            String label = buildLabel(type, id, k);
 
             double leg = 0.0;
             if (k > 0) {

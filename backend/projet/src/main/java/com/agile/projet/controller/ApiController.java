@@ -180,16 +180,17 @@ public class ApiController {
             }
             log.info("Number of deliveries: {}, using {} couriers", nbDeliveries, nbCouriers);
 
-            List<Tournee> tournees =  controller.findBalancedPathsForNDrivers(2, 4.0, 1 * 3600);
+            // Use the calculated nbCouriers instead of hardcoded 2
+            List<Tournee> tournees =  controller.findBalancedPathsForNDrivers(nbCouriers, 4.0, 1 * 3600);
             List<List<Long>> paths = controller.buildFullPathNTournées(tournees);
 
             // Build response with paths and courier count
             Map<String, Object> response = new HashMap<>();
             response.put("paths", paths);
-            response.put("nbCouriers", nbCouriers);
+            response.put("nbCouriers", paths.size()); // Use actual number of paths generated
             response.put("nbDeliveries", nbDeliveries);
 
-            log.info("TSP computed successfully: {} couriers, {} paths", nbCouriers, paths.size());
+            log.info("TSP computed successfully: {} couriers, {} paths", paths.size(), paths.size());
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
