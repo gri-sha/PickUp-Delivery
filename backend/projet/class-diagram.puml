@@ -1,0 +1,151 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam ArrowColor #777777
+skinparam ClassBorderColor #333333
+skinparam ClassBackgroundColor #ffffff
+skinparam BackgroundColor #ffffff
+
+package "com.agile.projet.controller" {
+  class ApiController {
+    +index(): void
+    +getTspFromFiles(plan: MultipartFile, request: MultipartFile): List<Long>
+    +getPlanNames(): String[]
+    +getRequestNames(): String[]
+    +loadPlan(planName: String): void
+    +getPlanFile(filename: String): ResponseEntity<String>
+    +getRequestFile(filename: String): ResponseEntity<String>
+    -controller: Controller
+  }
+
+  class Controller {
+    -pickupDeliveryModel: PickupDeliveryModel
+    -tournee: Tournee
+    +Controller()
+    +createPlan(planXml: String): void
+    +createDeliveryFromXml(deliveryPlanXml: String): void
+    +computeShortestPaths(): void
+    +findBestPath(): Tournee
+    +buildFullPath(): List<Long>
+    +printMatriceChemins(): void
+    -resolveType(id: long): String
+    -buildLabel(type: String, id: long): String
+  }
+}
+
+package "com.agile.projet.model" {
+  class PickupDeliveryModel {
+    +plan: Plan
+    +demandeDelivery: DemandeDelivery
+    +createPlan(planXml: String): void
+    +createDelivery(deliveryXml: String): void
+    +getEntrepot(): Entrepot
+    +getMatriceChemins(): MatriceChemins
+    +getMatriceCout(): MatriceCout
+    +getVertexOrder(): List<Long>
+    +getPickupOfDelivery(): int[]
+  }
+
+  class Plan {
+    +printNoeuds(): void
+    +printTroncons(): void
+    +getNoeud(id: Long): Noeud
+  }
+
+  class DemandeDelivery {
+    +deliveries: List<Delivery>
+    +entrepot: Entrepot
+    +addDelivery(d: Delivery): void
+    +printDeliveries(): void
+    +getDeliveries(): List<Delivery>
+    +setEntrepot(e: Entrepot): void
+    +getEntrepot(): Entrepot
+  }
+
+  class Delivery {
+    +adresseEnlevement: long
+    +adresseLivraison: long
+    +dureeEnlevement: int
+    +dureeLivraison: int
+  }
+
+  class Entrepot {
+    +adresse: long
+    +heureDepart: String
+  }
+
+  class Noeud {
+    +id: long
+    +latitude: double
+    +longitude: double
+  }
+
+  class Troncon {}
+
+  class Tournee {
+    +totalCost: double
+    +getEtapes(): List<Etape>
+    class Etape {
+      +id: long
+      +type: String
+      +label: String
+      +legCost: double
+      +cumulativeCost: double
+    }
+  }
+
+
+package "com.agile.projet.utils" {
+  class XmlPlanParser {
+    +parse(...)
+  }
+
+  class XmlDeliveryParser {
+    +parse(...)
+  }
+
+  class CalculPlusCoursChemins {
+    +computeAstar(plan: Plan, demande: DemandeDelivery, model: PickupDeliveryModel): void
+  }
+
+  class CalculTSP {
+    +CalculTSP(costMatrix: double[][], vertexOrder: List<Long>)
+    +solveFromId(depotId: long): void
+    +getBestCost(): double
+    +getBestPathIndices(): List<Integer>
+  }
+
+  class MatriceCout {
+    +getCostMatrix(): double[][]
+  }
+
+  class MatriceChemins {
+    +getCheminMatrix(): Map<NodePair, List<Noeud>>
+  }
+
+  class NodePair {
+    +NodePair(a: Noeud, b: Noeud)
+  }
+}
+
+' Relationships
+ApiController --> Controller
+Controller --> PickupDeliveryModel
+PickupDeliveryModel --> Plan
+PickupDeliveryModel --> DemandeDelivery
+PickupDeliveryModel --> Entrepot
+PickupDeliveryModel --> MatriceChemins
+PickupDeliveryModel --> MatriceCout
+PickupDeliveryModel --> CalculPlusCoursChemins
+Controller --> CalculTSP
+Controller --> MatriceChemins
+Controller --> Noeud
+DemandeDelivery --> Delivery
+DemandeDelivery --> Entrepot
+Plan --> Noeud
+Plan --> Troncon
+MatriceChemins --> NodePair
+XmlPlanParser ..> Plan
+XmlDeliveryParser ..> DemandeDelivery
+
+@enduml

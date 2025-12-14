@@ -1,0 +1,70 @@
+@startuml Class_Diagram_Full
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam ArrowColor #777777
+skinparam ClassBorderColor #333333
+skinparam ClassBackgroundColor #ffffff
+skinparam BackgroundColor #ffffff
+
+package "com.agile.projet.controller" {
+  class ApiController 
+}
+
+    package "com.agile.projet.controller" {
+      class ApiController
+      class Controller
+    }
+
+    package "com.agile.projet.model" {
+      class PickupDeliveryModel
+      class Plan
+      class DemandeDelivery
+      class Delivery
+      class Entrepot
+      class Noeud
+      class Troncon
+      class Tournee
+    }
+
+    package "com.agile.projet.utils" {
+      class XmlPlanParser
+      class XmlDeliveryParser
+      class CalculPlusCoursChemins
+      class CalculTSP
+      class MatriceCout
+      class MatriceChemins
+      class NodePair
+    }
+
+    package "com.agile.projet.controller (tests)" {
+      class ApiControllerTest
+      class ControllerTest
+    }
+
+    ' Relationships
+    ApiController --> Controller
+    Controller --> PickupDeliveryModel
+    PickupDeliveryModel --> Plan
+    PickupDeliveryModel --> DemandeDelivery
+    PickupDeliveryModel --> Entrepot
+    PickupDeliveryModel --> MatriceChemins
+    PickupDeliveryModel --> MatriceCout
+    Controller --> CalculTSP
+    Controller --> MatriceChemins
+    Controller --> Noeud
+    DemandeDelivery --> Delivery
+    DemandeDelivery --> Entrepot
+    Plan --> Noeud
+    Plan --> Troncon
+    MatriceChemins --> NodePair
+    XmlPlanParser ..> Plan
+    XmlDeliveryParser ..> DemandeDelivery
+
+    ApiControllerTest ..> ApiController
+    ApiControllerTest ..> Controller
+    ControllerTest ..> Controller
+    ControllerTest ..> Tournee
+    ControllerTest ..> MatriceCout
+    ControllerTest ..> MatriceChemins
+
+    @enduml

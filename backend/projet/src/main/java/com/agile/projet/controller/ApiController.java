@@ -62,11 +62,14 @@ public class ApiController {
     }
 
     // New endpoint: accepts uploaded XML files (plan + request) and returns full TSP path
-    @PostMapping(path = "/get-tsp", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public Map<String, Object> getTspFromFiles(
+        @PostMapping(path = "/get-tsp", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+        public Map<String, Object> getTspFromFiles(
             @RequestPart("plan") MultipartFile planXml,
-            @RequestPart("request") MultipartFile requestXml
-    ) throws Exception {
+            @RequestPart("request") MultipartFile requestXml,
+            @RequestParam(name = "nDrivers", required = false) Integer nDrivers,
+            @RequestParam(name = "speedFactor", required = false) Double speedFactor,
+            @RequestParam(name = "maxSeconds", required = false) Integer maxSeconds
+        ) throws Exception {
         System.out.println("getTspFromFiles called");
         log.info("Received plan file: {}", planXml != null ? planXml.getOriginalFilename() : "<null>");
         log.info("Received request file: {}", requestXml != null ? requestXml.getOriginalFilename() : "<null>");
@@ -102,8 +105,12 @@ public class ApiController {
 
             int nbDeliveries = controller.pickupDeliveryModel.demandeDelivery.getDeliveries().size();
 
-            // Use new method that automatically calculates optimal courier count
-            List<Tournee> tournees = controller.findOptimalBalancedPaths(4.0, 3600);
+            // Parameters with defaults if not provided
+            int drivers = (nDrivers != null && nDrivers > 0) ? nDrivers : 2;
+            double sf = (speedFactor != null && speedFactor > 0) ? speedFactor : 4.0;
+            int limit = (maxSeconds != null && maxSeconds > 0) ? maxSeconds : 3600;
+
+            List<Tournee> tournees = controller.findBalancedPathsForNDrivers(drivers, sf, limit);
             List<List<Long>> paths = controller.buildFullPathNTournées(tournees);
 
             log.info("TSP computation completed successfully.");
@@ -122,10 +129,13 @@ public class ApiController {
 
     // Simple GET endpoint that accepts plan and request names as parameters
     @GetMapping("/get-tsp")
-    public ResponseEntity<Map<String, Object>> getTspSimple(
+        public ResponseEntity<Map<String, Object>> getTspSimple(
             @RequestParam(required = false) String planName,
-            @RequestParam(required = false) String requestName
-    ) {
+            @RequestParam(required = false) String requestName,
+            @RequestParam(name = "nDrivers", required = false) Integer nDrivers,
+            @RequestParam(name = "speedFactor", required = false) Double speedFactor,
+            @RequestParam(name = "maxSeconds", required = false) Integer maxSeconds
+        ) {
         try {
             log.info("GET /get-tsp called with planName={}, requestName={}", planName, requestName);
 
@@ -165,8 +175,13 @@ public class ApiController {
 
             int nbDeliveries = controller.pickupDeliveryModel.demandeDelivery.getDeliveries().size();
 
-            // Use new method that automatically calculates optimal courier count
-            List<Tournee> tournees =  controller.findBalancedPathsForNDrivers(2, 4.0, 1 * 3600);
+            // Use params if provided, otherwise defaults
+            double sf = (speedFactor != null && speedFactor > 0) ? speedFactor : 4.0;
+            int limit = (maxSeconds != null && maxSeconds > 0) ? maxSeconds : 3600;
+
+            int drivers = (nDrivers != null && nDrivers > 0) ? nDrivers : 2;
+            System.out.println("Using nDrivers=" + drivers + ", speedFactor=" + sf + ", maxSeconds=" + limit);
+            List<Tournee> tournees =  controller.findBalancedPathsForNDrivers(drivers, sf, limit);
             List<List<Long>> paths = controller.buildFullPathNTournées(tournees);
 
             // Build response with actual paths generated

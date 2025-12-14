@@ -1,0 +1,26 @@
+@startuml Sequence_Load_Plan
+skinparam ArrowColor #777777
+skinparam BackgroundColor #ffffff
+skinparam sequence {
+  ArrowColor #777777
+  LifeLineBorderColor #333333
+  LifeLineBackgroundColor #ffffff
+}
+
+actor User
+participant "Frontend App" as FE
+participant "ApiController" as API
+participant "Controller" as CTRL
+participant "XmlPlanParser" as XPP
+participant "PickupDeliveryModel" as PDM
+
+User -> FE : Select plan "grandPlan.xml"
+FE -> API : GET /load-plan/grandPlan.xml
+API -> CTRL : createPlan("plans/grandPlan.xml")
+CTRL -> XPP : parse(xml)
+XPP --> CTRL : Plan
+CTRL -> PDM : setPlan(Plan)
+API --> FE : 200 OK + plan summary
+FE -> FE : Render map nodes & roads
+
+@enduml

@@ -21,8 +21,20 @@ interface ControlPanelProps {
   onClearClickedNodes: () => void;
   isCollectingNodes: boolean;
   clickedNodesCount: number;
-  onComputeTsp: (planName: string, requestName: string) => void;
-  onUploadAndComputeTsp: (planFile: File, requestFile: File) => void;
+  onComputeTsp: (
+    planName: string,
+    requestName: string,
+    nDrivers: number,
+    speedFactor: number,
+    maxSeconds: number
+  ) => void;
+  onUploadAndComputeTsp: (
+    planFile: File,
+    requestFile: File,
+    nDrivers: number,
+    speedFactor: number,
+    maxSeconds: number
+  ) => void;
 }
 
 export default function ControlPanel({
@@ -56,7 +68,8 @@ export default function ControlPanel({
 
   const [uploadPlanFile, setUploadPlanFile] = useState<File | null>(null);
   const [uploadRequestFile, setUploadRequestFile] = useState<File | null>(null);
-
+  const [speedFactor, setSpeedFactor] = useState<number>(4.0);
+  const [maxSeconds, setMaxSeconds] = useState<number>(3600);
 
   const handleMapSelect = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const filename = e.target.value;
@@ -230,13 +243,27 @@ export default function ControlPanel({
             backgroundColor: "#f0f9ff",
           }}
         >
-          <h4 style={{ marginTop: 0, fontSize: "0.9rem" }}>Upload & Compute TSP</h4>
-          <p style={{ fontSize: "0.75rem", color: "#6b7280", marginBottom: "8px" }}>
+          <h4 style={{ marginTop: 0, fontSize: "0.9rem" }}>
+            Upload & Compute TSP
+          </h4>
+          <p
+            style={{
+              fontSize: "0.75rem",
+              color: "#6b7280",
+              marginBottom: "8px",
+            }}
+          >
             Upload your own XML files to compute TSP
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             <div>
-              <label style={{ fontSize: "0.8rem", display: "block", marginBottom: "4px" }}>
+              <label
+                style={{
+                  fontSize: "0.8rem",
+                  display: "block",
+                  marginBottom: "4px",
+                }}
+              >
                 Plan XML:
               </label>
               <input
@@ -246,23 +273,43 @@ export default function ControlPanel({
                 style={{ fontSize: "0.8rem", width: "100%" }}
               />
               {uploadPlanFile && (
-                <div style={{ fontSize: "0.7rem", color: "#059669", marginTop: "2px" }}>
+                <div
+                  style={{
+                    fontSize: "0.7rem",
+                    color: "#059669",
+                    marginTop: "2px",
+                  }}
+                >
                   ✓ {uploadPlanFile.name}
                 </div>
               )}
             </div>
             <div>
-              <label style={{ fontSize: "0.8rem", display: "block", marginBottom: "4px" }}>
+              <label
+                style={{
+                  fontSize: "0.8rem",
+                  display: "block",
+                  marginBottom: "4px",
+                }}
+              >
                 Request XML:
               </label>
               <input
                 type="file"
                 accept=".xml"
-                onChange={(e) => setUploadRequestFile(e.target.files?.[0] || null)}
+                onChange={(e) =>
+                  setUploadRequestFile(e.target.files?.[0] || null)
+                }
                 style={{ fontSize: "0.8rem", width: "100%" }}
               />
               {uploadRequestFile && (
-                <div style={{ fontSize: "0.7rem", color: "#059669", marginTop: "2px" }}>
+                <div
+                  style={{
+                    fontSize: "0.7rem",
+                    color: "#059669",
+                    marginTop: "2px",
+                  }}
+                >
                   ✓ {uploadRequestFile.name}
                 </div>
               )}
@@ -270,14 +317,25 @@ export default function ControlPanel({
             <button
               onClick={() => {
                 if (uploadPlanFile && uploadRequestFile) {
-                  onUploadAndComputeTsp(uploadPlanFile, uploadRequestFile);
+                  onUploadAndComputeTsp(
+                    uploadPlanFile,
+                    uploadRequestFile,
+                    courierCount,
+                    speedFactor,
+                    maxSeconds
+                  );
                 }
               }}
               disabled={!uploadPlanFile || !uploadRequestFile}
               style={{
-                backgroundColor: uploadPlanFile && uploadRequestFile ? "#3b82f6" : "#e5e7eb",
-                color: uploadPlanFile && uploadRequestFile ? "#ffffff" : "#9ca3af",
-                cursor: uploadPlanFile && uploadRequestFile ? "pointer" : "not-allowed",
+                backgroundColor:
+                  uploadPlanFile && uploadRequestFile ? "#3b82f6" : "#e5e7eb",
+                color:
+                  uploadPlanFile && uploadRequestFile ? "#ffffff" : "#9ca3af",
+                cursor:
+                  uploadPlanFile && uploadRequestFile
+                    ? "pointer"
+                    : "not-allowed",
                 padding: "8px",
                 fontWeight: "bold",
               }}
@@ -295,6 +353,35 @@ export default function ControlPanel({
             value={courierCount}
             onChange={(e) => setCourierCount(parseInt(e.target.value))}
           />
+        </div>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(2, 1fr)",
+            gap: "8px",
+            marginTop: "8px",
+          }}
+        >
+          <div>
+            <label>Speed Factor: </label>
+            <input
+              type="number"
+              step="0.1"
+              min="0.1"
+              value={speedFactor}
+              onChange={(e) => setSpeedFactor(parseFloat(e.target.value))}
+            />
+          </div>
+          <div>
+            <label>Max Seconds: </label>
+            <input
+              type="number"
+              min="1"
+              value={maxSeconds}
+              onChange={(e) => setMaxSeconds(parseInt(e.target.value))}
+            />
+          </div>
         </div>
       </div>
 
@@ -476,7 +563,15 @@ export default function ControlPanel({
             Save Request
           </button>
           <button
-            onClick={() => onComputeTsp(selectedMap, selectedRequest)}
+            onClick={() =>
+              onComputeTsp(
+                selectedMap,
+                selectedRequest,
+                courierCount,
+                speedFactor,
+                maxSeconds
+              )
+            }
             style={{ flex: 1 }}
             disabled={!selectedMap || !selectedRequest}
           >

@@ -1,0 +1,33 @@
+@startuml Sequence_Invalid_Upload
+skinparam ArrowColor #777777
+skinparam BackgroundColor #ffffff
+skinparam sequence {
+  ArrowColor #777777
+  LifeLineBorderColor #333333
+  LifeLineBackgroundColor #ffffff
+}
+
+actor User
+participant "Frontend App" as FE
+participant "ApiController" as API
+participant "Controller" as CTRL
+participant "XmlPlanParser" as XPP
+participant "XmlDeliveryParser" as XDP
+
+User -> FE : Upload plan.xml + request.xml
+FE -> API : POST /get-tsp (multipart)
+API -> CTRL : createPlan("plans/plan.xml")
+CTRL -> XPP : parse(xml)
+XPP --> CTRL : ParseError
+API --> FE : 400 Bad Request + error message
+FE -> FE : Show error banner
+
+== Alternate: request XML invalid ==
+FE -> API : POST /get-tsp (multipart)
+API -> CTRL : createDeliveryFromXml("requests/request.xml")
+CTRL -> XDP : parse(xml)
+XDP --> CTRL : ParseError
+API --> FE : 400 Bad Request + error message
+FE -> FE : Show error banner
+
+@enduml

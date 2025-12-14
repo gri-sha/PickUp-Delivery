@@ -1,0 +1,26 @@
+@startuml Sequence_Render_TSP
+skinparam ArrowColor #777777
+skinparam BackgroundColor #ffffff
+skinparam sequence {
+  ArrowColor #777777
+  LifeLineBorderColor #333333
+  LifeLineBackgroundColor #ffffff
+}
+
+actor User
+participant "Frontend App" as FE
+participant "ApiController" as API
+participant "Controller" as CTRL
+participant "MapComponent" as MAP
+
+User -> FE : Calculate TSP
+FE -> API : POST /get-tsp (multipart or selected)
+API -> CTRL : computeShortestPaths()
+CTRL -> CTRL : findBestPath()
+CTRL -> CTRL : buildFullPath()
+API --> FE : 200 OK + tspPath
+FE -> FE : setTspPath(tspPath)
+FE -> MAP : drawRoute(tspPath)
+MAP --> FE : Route rendered
+
+@enduml

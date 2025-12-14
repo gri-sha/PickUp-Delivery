@@ -1,0 +1,25 @@
+@startuml Sequence_View_Files
+skinparam ArrowColor #777777
+skinparam BackgroundColor #ffffff
+skinparam sequence {
+  ArrowColor #777777
+  LifeLineBorderColor #333333
+  LifeLineBackgroundColor #ffffff
+}
+
+actor User
+participant "Frontend App" as FE
+participant "ApiController" as API
+
+alt View plan XML
+  User -> FE : Request plan preview
+  FE -> API : GET /plans/grandPlan.xml
+  API --> FE : 200 OK + XML content
+else View request XML
+  User -> FE : Request request preview
+  FE -> API : GET /requests/demandePetit1.xml
+  API --> FE : 200 OK + XML content
+end
+FE -> FE : Show XML preview
+
+@enduml

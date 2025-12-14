@@ -267,17 +267,17 @@ function App() {
     if (deliveryRequest?.warehouse) {
       alert(
         "Click & Collect Mode:\n\n" +
-        "✓ Warehouse from loaded request will be kept\n" +
-        "✓ Existing deliveries from loaded request will be kept\n" +
-        "✓ Click nodes on map to add NEW deliveries (pairs: pickup → delivery)\n" +
-        "✓ Save will merge everything into one XML file"
+          "✓ Warehouse from loaded request will be kept\n" +
+          "✓ Existing deliveries from loaded request will be kept\n" +
+          "✓ Click nodes on map to add NEW deliveries (pairs: pickup → delivery)\n" +
+          "✓ Save will merge everything into one XML file"
       );
     } else {
       alert(
         "Click & Collect Mode:\n\n" +
-        "✓ First click = Warehouse\n" +
-        "✓ Then click pairs: pickup → delivery\n" +
-        "✓ Save will create a new delivery request XML"
+          "✓ First click = Warehouse\n" +
+          "✓ Then click pairs: pickup → delivery\n" +
+          "✓ Save will create a new delivery request XML"
       );
     }
 
@@ -293,7 +293,10 @@ function App() {
   };
 
   const handleSaveClickedNodes = async () => {
-    if (clickedNodes.length === 0 && (!deliveryRequest || deliveryRequest.deliveries.length === 0)) {
+    if (
+      clickedNodes.length === 0 &&
+      (!deliveryRequest || deliveryRequest.deliveries.length === 0)
+    ) {
       alert("No nodes collected and no delivery request loaded.");
       return;
     }
@@ -317,7 +320,9 @@ function App() {
     } else if (clickedNodes.length > 0) {
       xmlContent += `    <entrepot adresse="${clickedNodes[0].id}" heureDepart="8:0:0"/>\n`;
     } else {
-      alert("No warehouse defined (no delivery request loaded and no nodes clicked).");
+      alert(
+        "No warehouse defined (no delivery request loaded and no nodes clicked)."
+      );
       return;
     }
 
@@ -359,9 +364,17 @@ function App() {
 
       if (response.ok) {
         const result = await response.json();
-        const totalDeliveries = (deliveryRequest?.deliveries?.length || 0) + Math.floor((clickedNodes.length - startIndex) / 2);
+        const totalDeliveries =
+          (deliveryRequest?.deliveries?.length || 0) +
+          Math.floor((clickedNodes.length - startIndex) / 2);
         alert(
-          `File saved successfully!\n\nFilename: ${result.filename}\nPath: ${result.path}\n\nTotal deliveries saved: ${totalDeliveries}\n- From loaded request: ${deliveryRequest?.deliveries?.length || 0}\n- From clicked nodes: ${Math.floor((clickedNodes.length - startIndex) / 2)}`
+          `File saved successfully!\n\nFilename: ${result.filename}\nPath: ${
+            result.path
+          }\n\nTotal deliveries saved: ${totalDeliveries}\n- From loaded request: ${
+            deliveryRequest?.deliveries?.length || 0
+          }\n- From clicked nodes: ${Math.floor(
+            (clickedNodes.length - startIndex) / 2
+          )}`
         );
       } else {
         const errorText = await response.text();
@@ -374,17 +387,28 @@ function App() {
     }
   };
 
-  const handleComputeTsp = async (planName: string, requestName: string) => {
+  const handleComputeTsp = async (
+    planName: string,
+    requestName: string,
+    nDrivers: number,
+    speedFactor: number,
+    maxSeconds: number
+  ) => {
     if (!planName || !requestName) {
       alert("Please select both a plan and a request before calculating TSP.");
       return;
     }
 
     try {
+      const params = new URLSearchParams({
+        planName,
+        requestName,
+        nDrivers: String(nDrivers),
+        speedFactor: String(speedFactor),
+        maxSeconds: String(maxSeconds),
+      });
       const response = await fetch(
-        `http://localhost:8080/get-tsp?planName=${encodeURIComponent(
-          planName
-        )}&requestName=${encodeURIComponent(requestName)}`
+        `http://localhost:8080/get-tsp?${params.toString()}`
       );
       if (!response.ok) {
         const errorText = await response.text();
@@ -392,7 +416,11 @@ function App() {
       }
 
       // Backend now returns {paths: number[][], nbCouriers: number, nbDeliveries: number}
-      const data: { paths: number[][]; nbCouriers: number; nbDeliveries: number } = await response.json();
+      const data: {
+        paths: number[][];
+        nbCouriers: number;
+        nbDeliveries: number;
+      } = await response.json();
       console.log("TSP response:", data);
 
       if (!data.paths || data.paths.length === 0) {
@@ -400,12 +428,16 @@ function App() {
       }
 
       // Convert all paths to string arrays
-      const allPathsStr = data.paths.map(path => path.map(id => id.toString()));
+      const allPathsStr = data.paths.map((path) =>
+        path.map((id) => id.toString())
+      );
       setTspPaths(allPathsStr);
       setNbCouriers(data.nbCouriers);
       setNbDeliveries(data.nbDeliveries);
 
-      alert(`TSP computed successfully!\n${data.nbDeliveries} deliveries\n${data.nbCouriers} courier(s) needed`);
+      alert(
+        `TSP computed successfully!\n${data.nbDeliveries} deliveries\n${data.nbCouriers} courier(s) needed`
+      );
     } catch (error: any) {
       console.error("Error computing TSP:", error);
       alert(`Failed to compute TSP: ${error.message || "Unknown error"}`);
@@ -414,12 +446,18 @@ function App() {
 
   const handleUploadAndComputeTsp = async (
     planFile: File,
-    requestFile: File
+    requestFile: File,
+    nDrivers: number,
+    speedFactor: number,
+    maxSeconds: number
   ) => {
     try {
       const formData = new FormData();
       formData.append("plan", planFile);
       formData.append("request", requestFile);
+      formData.append("nDrivers", String(nDrivers));
+      formData.append("speedFactor", String(speedFactor));
+      formData.append("maxSeconds", String(maxSeconds));
 
       const response = await fetch("http://localhost:8080/get-tsp", {
         method: "POST",
@@ -432,7 +470,11 @@ function App() {
       }
 
       // Backend now returns {paths: number[][], nbCouriers: number, nbDeliveries: number}
-      const data: { paths: number[][]; nbCouriers: number; nbDeliveries: number } = await response.json();
+      const data: {
+        paths: number[][];
+        nbCouriers: number;
+        nbDeliveries: number;
+      } = await response.json();
       console.log("TSP response:", data);
 
       if (!data.paths || data.paths.length === 0) {
@@ -440,7 +482,9 @@ function App() {
       }
 
       // Convert all paths to string arrays
-      const allPathsStr = data.paths.map(path => path.map(id => id.toString()));
+      const allPathsStr = data.paths.map((path) =>
+        path.map((id) => id.toString())
+      );
       setTspPaths(allPathsStr);
       setNbCouriers(data.nbCouriers);
       setNbDeliveries(data.nbDeliveries);
@@ -507,14 +551,15 @@ function App() {
   // Si une demande est chargée avec entrepôt, tous les clics sont pickup/delivery
   // Sinon, le 1er clic est l'entrepôt
   clickedNodes.forEach((node, idx) => {
-    let nodeType: 'warehouse' | 'pickup' | 'delivery';
+    let nodeType: "warehouse" | "pickup" | "delivery";
 
     if (deliveryRequest?.warehouse) {
       // Si warehouse existe déjà, tous les clics sont des paires pickup/delivery
-      nodeType = idx % 2 === 0 ? 'pickup' : 'delivery';
+      nodeType = idx % 2 === 0 ? "pickup" : "delivery";
     } else {
       // Sinon, 1er clic = warehouse, puis paires pickup/delivery
-      nodeType = idx === 0 ? 'warehouse' : (idx % 2 === 1 ? 'pickup' : 'delivery');
+      nodeType =
+        idx === 0 ? "warehouse" : idx % 2 === 1 ? "pickup" : "delivery";
     }
 
     displayStops.push({
@@ -600,15 +645,33 @@ function App() {
           <div className="delivery-list">
             {/* Display TSP info */}
             {nbCouriers > 0 && (
-              <div className="delivery-group" style={{ backgroundColor: '#e0f2fe', padding: '10px', borderRadius: '5px', marginBottom: '10px' }}>
-                <h4 style={{ color: '#0369a1', marginTop: 0 }}>🚚 TSP Solution</h4>
-                <p style={{ margin: '5px 0', fontWeight: 'bold' }}>
-                  {nbDeliveries} deliveries → {nbCouriers} courier{nbCouriers > 1 ? 's' : ''} needed
+              <div
+                className="delivery-group"
+                style={{
+                  backgroundColor: "#e0f2fe",
+                  padding: "10px",
+                  borderRadius: "5px",
+                  marginBottom: "10px",
+                }}
+              >
+                <h4 style={{ color: "#0369a1", marginTop: 0 }}>
+                  🚚 TSP Solution
+                </h4>
+                <p style={{ margin: "5px 0", fontWeight: "bold" }}>
+                  {nbDeliveries} deliveries → {nbCouriers} courier
+                  {nbCouriers > 1 ? "s" : ""} needed
                 </p>
-                <p style={{ margin: '5px 0', fontSize: '0.85rem', color: '#075985' }}>
+                <p
+                  style={{
+                    margin: "5px 0",
+                    fontSize: "0.85rem",
+                    color: "#075985",
+                  }}
+                >
                   {tspPaths.map((path, i) => (
                     <span key={i}>
-                      Courier {i + 1}: {path.length} stops{i < tspPaths.length - 1 ? ' | ' : ''}
+                      Courier {i + 1}: {path.length} stops
+                      {i < tspPaths.length - 1 ? " | " : ""}
                     </span>
                   ))}
                 </p>

@@ -1,0 +1,29 @@
+@startuml Sequence_List_and_Fetch_Files
+actor User
+participant Frontend as FE
+participant ApiController as API
+participant Filesystem as FS
+
+== List plan/request filenames ==
+User -> FE: Open dropdowns
+FE -> API: GET /plan-names
+API -> FS: list src/main/resources/plans
+FS --> API: [filenames]
+API --> FE: 200 OK JSON
+FE -> API: GET /request-names
+API -> FS: list src/main/resources/requests
+FS --> API: [filenames]
+API --> FE: 200 OK JSON
+
+== Fetch specific files ==
+User -> FE: Select a map filename
+FE -> API: GET /plans/{filename}
+API -> FS: read classpath resource
+FS --> API: XML content
+API --> FE: 200 OK (text/xml)
+User -> FE: Select a request filename
+FE -> API: GET /requests/{filename}
+API -> FS: read classpath resource
+FS --> API: XML content
+API --> FE: 200 OK (text/xml)
+@enduml

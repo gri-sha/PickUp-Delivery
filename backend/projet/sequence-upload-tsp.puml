@@ -1,0 +1,40 @@
+@startuml
+actor User
+participant Frontend as FE
+participant ApiController as API
+participant Controller as C
+participant PickupDeliveryModel as Model
+participant XmlPlanParser as PlanParser
+participant XmlDeliveryParser as DeliveryParser
+participant CalculPlusCoursChemins as ShortestPaths
+participant CalculTSP as TSP
+
+== Upload Plan + Request and Compute TSP ==
+User -> FE: Select Plan.xml + Request.xml
+FE -> API: POST /get-tsp (multipart: plan, request)
+API -> API: Save files to classpath (plans/, requests/)
+API -> C: createPlan("plans/<file>")
+C -> Model: createPlan("plans/<file>")
+Model -> PlanParser: parse plan XML
+PlanParser --> Model: Plan
+Model -> Model: set plan
+C <-- Model: done
+API -> C: createDeliveryFromXml("requests/<file>")
+C -> Model: createDelivery("requests/<file>")
+Model -> DeliveryParser: parse delivery XML
+DeliveryParser --> Model: DemandeDelivery
+Model -> Model: set demandeDelivery
+C <-- Model: done
+API -> C: computeShortestPaths()
+C -> ShortestPaths: computeAstar(plan, demande, model)
+ShortestPaths --> Model: set vertexOrder + MatriceCout + MatriceChemins
+API -> C: findBestPath()
+C -> TSP: solveFromId(depotId)
+TSP --> C: bestPathIndices + bestCost
+C -> C: build Etapes (labels, costs)
+C -> C: set tournee
+API -> C: buildFullPath()
+C --> API: List<Long> nodeIds
+API --> FE: 200 OK, JSON path nodeIds
+FE -> FE: Render path on map
+@enduml

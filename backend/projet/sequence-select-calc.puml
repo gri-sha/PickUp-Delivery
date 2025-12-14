@@ -1,0 +1,29 @@
+@startuml Sequence_Select_Calculate_TSP
+actor User
+participant Frontend as FE
+participant ApiController as API
+participant Controller as C
+participant PickupDeliveryModel as Model
+participant XmlPlanParser as PlanParser
+participant XmlDeliveryParser as DeliveryParser
+participant CalculPlusCoursChemins as ShortestPaths
+participant CalculTSP as TSP
+
+== Select filenames then Calculate TSP ==
+User -> FE: Select map filename
+FE -> API: GET /plans/{filename}
+API --> FE: 200 OK (XML)
+FE -> FE: parseMapXML, display map
+User -> FE: Select request filename
+FE -> API: GET /requests/{filename}
+API --> FE: 200 OK (XML)
+FE -> FE: parseDeliveryXML, display deliveries
+User -> FE: Click "Calculate TSP"
+FE -> API: POST /get-tsp (multipart constructed from selected contents)
+API -> C: createPlan + createDelivery + computeShortestPaths
+C -> TSP: solveFromId(depotId)
+C -> C: set tournee; buildFullPath()
+C --> API: List<Long> nodeIds
+API --> FE: 200 OK JSON
+FE -> FE: Render path
+@enduml
